@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+    <marker id="arrow-fast" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#10b981"/>
+    </marker>
+    <marker id="arrow-batch" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#f97316"/>
+    </marker>
+    <marker id="arrow-feedback" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="600" y="32" text-anchor="middle" font-size="20" font-weight="600" fill="#0f172a">RQ4 — MCP Streaming Resources delivery</text>
+  <text x="600" y="52" text-anchor="middle" font-size="12" fill="#64748b">subscribe once · server pushes · Streamable HTTP keeps the connection resumable</text>
+
+  <!-- Agent lane -->
+  <g>
+    <rect x="110" y="70" width="200" height="50" rx="8" fill="#f1f5f9" stroke="#334155" stroke-width="1.5"/>
+    <text x="210" y="92" text-anchor="middle" font-size="14" font-weight="600" fill="#0f172a">AI Agent</text>
+    <text x="210" y="110" text-anchor="middle" font-size="11" fill="#64748b">MCP client</text>
+    <line x1="210" y1="120" x2="210" y2="620" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4 3"/>
+  </g>
+
+  <!-- Engine lane -->
+  <g>
+    <rect x="890" y="70" width="200" height="50" rx="8" fill="#fef2f2" stroke="#ef4444" stroke-width="1.5"/>
+    <text x="990" y="92" text-anchor="middle" font-size="14" font-weight="600" fill="#0f172a">Context Engine</text>
+    <text x="990" y="110" text-anchor="middle" font-size="11" fill="#64748b">MCP server</text>
+    <line x1="990" y1="120" x2="990" y2="620" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4 3"/>
+  </g>
+
+  <!-- Transport label -->
+  <rect x="480" y="78" width="240" height="34" rx="6" fill="#eef2ff" stroke="#6366f1" stroke-width="1"/>
+  <text x="600" y="99" text-anchor="middle" font-size="11.5" font-weight="600" fill="#3730a3">Streamable HTTP (POST + SSE)</text>
+
+  <!-- 1. initialize -->
+  <line x1="210" y1="160" x2="990" y2="160" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="600" y="152" text-anchor="middle" font-size="11.5" fill="#334155">1. POST  initialize  — capabilities: <tspan font-family="monospace">resources.subscribe</tspan></text>
+
+  <!-- 2. initialize result -->
+  <line x1="990" y1="195" x2="210" y2="195" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="600" y="187" text-anchor="middle" font-size="11.5" fill="#334155">2. 200  initialize result  — server advertises <tspan font-family="monospace">subscribe</tspan> + <tspan font-family="monospace">listChanged</tspan></text>
+
+  <!-- 3. resources/subscribe -->
+  <line x1="210" y1="235" x2="990" y2="235" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="600" y="227" text-anchor="middle" font-size="11.5" fill="#334155">3. POST  resources/subscribe  { uri: <tspan font-family="monospace">"cms://customer/42/events"</tspan> }</text>
+
+  <!-- 4. ack + SSE opens -->
+  <line x1="990" y1="270" x2="210" y2="270" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="600" y="262" text-anchor="middle" font-size="11.5" fill="#334155">4. ack  — SSE stream opens, server retains <tspan font-family="monospace">Mcp-Session-Id</tspan> + last-event-id cursor</text>
+
+  <!-- Divider -->
+  <line x1="120" y1="300" x2="1080" y2="300" stroke="#cbd5e1" stroke-width="0.8" stroke-dasharray="2 4"/>
+  <text x="600" y="316" text-anchor="middle" font-size="10.5" fill="#64748b" font-style="italic">— connection idle; server pushes when events classify to this resource —</text>
+
+  <!-- 5. fast push -->
+  <line x1="990" y1="355" x2="210" y2="355" stroke="#10b981" stroke-width="1.8" marker-end="url(#arrow-fast)"/>
+  <text x="600" y="347" text-anchor="middle" font-size="11.5" fill="#065f46">5. SSE  notifications/resources/updated  — <tspan font-family="monospace">data</tspan> = CloudEvent (fast queue)</text>
+  <text x="600" y="373" text-anchor="middle" font-size="10.5" fill="#64748b" font-style="italic">e.g. Stripe dispute $50K — delivered within ms of arrival</text>
+
+  <!-- 6. agent handles + feedback -->
+  <line x1="210" y1="410" x2="990" y2="410" stroke="#0ea5e9" stroke-width="1.5" marker-end="url(#arrow-feedback)"/>
+  <text x="600" y="402" text-anchor="middle" font-size="11.5" fill="#0369a1">6. POST  tools/call  routing_feedback  { event_id, verdict: <tspan font-family="monospace">"appropriate"</tspan> }</text>
+
+  <!-- 7. batch push -->
+  <line x1="990" y1="460" x2="210" y2="460" stroke="#f97316" stroke-width="1.8" marker-end="url(#arrow-batch)"/>
+  <text x="600" y="452" text-anchor="middle" font-size="11.5" fill="#9a3412">7. SSE  notifications/resources/updated  — <tspan font-family="monospace">data</tspan> = Context Unit (batch queue)</text>
+  <text x="600" y="478" text-anchor="middle" font-size="10.5" fill="#64748b" font-style="italic">aggregated window of low-urgency events for the same partition key</text>
+
+  <!-- 8. resumption after drop -->
+  <line x1="210" y1="535" x2="990" y2="535" stroke="#334155" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arrow)"/>
+  <text x="600" y="517" text-anchor="middle" font-size="11.5" fill="#334155" font-weight="600">[ connection drops ]</text>
+  <text x="600" y="528" text-anchor="middle" font-size="11.5" fill="#334155">8. reconnect  GET /mcp  with  <tspan font-family="monospace">Last-Event-ID: &lt;cursor&gt;</tspan></text>
+
+  <line x1="990" y1="575" x2="210" y2="575" stroke="#334155" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arrow)"/>
+  <text x="600" y="567" text-anchor="middle" font-size="11.5" fill="#334155">9. SSE resumes — server replays missed <tspan font-family="monospace">notifications/resources/updated</tspan> frames</text>
+
+  <!-- Design notes -->
+  <g transform="translate(20, 630)">
+    <rect width="1160" height="80" rx="10" fill="#fefefe" stroke="#e2e8f0"/>
+    <g font-size="11.5" fill="#334155">
+      <text x="16" y="22"><tspan font-weight="600" fill="#3730a3">MCP primitives used:</tspan> <tspan font-family="monospace">resources/subscribe</tspan> · <tspan font-family="monospace">notifications/resources/updated</tspan> · <tspan font-family="monospace">tools/call</tspan> for feedback. Transport: Streamable HTTP (SSE for server→client, POST for client→server).</text>
+      <text x="16" y="42"><tspan font-weight="600" fill="#065f46">Scalability:</tspan> one long-lived SSE per agent; server fans out internally from Kafka/Redpanda. Partition key in the resource URI routes the right events to the right agent — no broker consumer-group concept leaks into the protocol.</text>
+      <text x="16" y="62"><tspan font-weight="600" fill="#9a3412">Resumability:</tspan> server assigns a monotonic <tspan font-family="monospace">event-id</tspan> per SSE frame; on reconnect the client sends <tspan font-family="monospace">Last-Event-ID</tspan> and the server replays from the retained log. At-least-once + (source, id) idempotency.</text>
+    </g>
+  </g>
+</svg>

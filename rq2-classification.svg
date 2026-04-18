@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+    <marker id="arrow-skip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#eab308"/>
+    </marker>
+    <marker id="arrow-reward" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/>
+    </marker>
+    <marker id="arrow-label" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#a855f7"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="600" y="32" text-anchor="middle" font-size="20" font-weight="600" fill="#0f172a">Event Classification — inference pipeline + learning loops</text>
+  <text x="600" y="52" text-anchor="middle" font-size="12" fill="#64748b">Rules handle the obvious · classifier perceives · bandit decides · outcomes feed both back</text>
+
+  <!-- Event -->
+  <circle cx="50" cy="170" r="28" fill="#f1f5f9" stroke="#64748b" stroke-width="1.5"/>
+  <text x="50" y="175" text-anchor="middle" font-size="12" font-weight="600" fill="#0f172a">event</text>
+
+  <!-- Stage 1: Envelope -->
+  <g transform="translate(110, 120)">
+    <rect width="150" height="100" rx="10" fill="#eef2ff" stroke="#6366f1" stroke-width="1.5"/>
+    <text x="75" y="26" text-anchor="middle" font-size="13" font-weight="600" fill="#3730a3">1. Envelope</text>
+    <line x1="20" y1="38" x2="130" y2="38" stroke="#c7d2fe"/>
+    <text x="75" y="58" text-anchor="middle" font-size="11" fill="#475569">CloudEvents v1.0</text>
+    <text x="75" y="75" text-anchor="middle" font-size="11" fill="#475569">normalize +</text>
+    <text x="75" y="92" text-anchor="middle" font-size="11" fill="#475569">extract features</text>
+  </g>
+
+  <!-- Stage 2: Rules -->
+  <g transform="translate(290, 120)">
+    <rect width="140" height="100" rx="10" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+    <text x="70" y="26" text-anchor="middle" font-size="13" font-weight="600" fill="#854d0e">2. Rules</text>
+    <line x1="20" y1="38" x2="120" y2="38" stroke="#fde68a"/>
+    <text x="70" y="58" text-anchor="middle" font-size="11" fill="#475569">JsonLogic / Drools</text>
+    <text x="70" y="75" text-anchor="middle" font-size="11" fill="#475569">short-circuit the</text>
+    <text x="70" y="92" text-anchor="middle" font-size="11" fill="#475569">obvious patterns</text>
+  </g>
+
+  <!-- Stage 3: Classifier -->
+  <g transform="translate(460, 120)">
+    <rect width="160" height="100" rx="10" fill="#faf5ff" stroke="#a855f7" stroke-width="1.5"/>
+    <text x="80" y="26" text-anchor="middle" font-size="13" font-weight="600" fill="#6b21a8">3. Classifier</text>
+    <line x1="20" y1="38" x2="140" y2="38" stroke="#e9d5ff"/>
+    <text x="80" y="58" text-anchor="middle" font-size="11" fill="#475569">LightGBM / XGBoost</text>
+    <text x="80" y="75" text-anchor="middle" font-size="11" fill="#475569">→ p(urgent)</text>
+    <text x="80" y="92" text-anchor="middle" font-size="11" fill="#475569">→ uncertainty</text>
+  </g>
+
+  <!-- Stage 5: Bandit -->
+  <g transform="translate(650, 120)">
+    <rect width="180" height="100" rx="10" fill="#fdf2f8" stroke="#ec4899" stroke-width="1.5"/>
+    <text x="90" y="26" text-anchor="middle" font-size="13" font-weight="600" fill="#9d174d">5. Contextual Bandit</text>
+    <line x1="20" y1="38" x2="160" y2="38" stroke="#fbcfe8"/>
+    <text x="90" y="58" text-anchor="middle" font-size="11" fill="#475569">LinUCB / Thompson</text>
+    <text x="90" y="75" text-anchor="middle" font-size="11" fill="#475569">context = envelope +</text>
+    <text x="90" y="92" text-anchor="middle" font-size="11" fill="#475569">p(urgent) + ops_state</text>
+  </g>
+
+  <!-- Action queues -->
+  <g transform="translate(870, 90)">
+    <rect width="150" height="170" rx="10" fill="#f8fafc" stroke="#334155" stroke-width="1.5"/>
+    <text x="75" y="25" text-anchor="middle" font-size="13" font-weight="600" fill="#0f172a">Action</text>
+    <g font-size="11.5">
+      <rect x="12" y="40" width="126" height="26" rx="6" fill="#ecfdf5" stroke="#10b981"/>
+      <text x="75" y="57" text-anchor="middle" fill="#065f46">fast  (p0 / p1)</text>
+      <rect x="12" y="72" width="126" height="26" rx="6" fill="#fff7ed" stroke="#f97316"/>
+      <text x="75" y="89" text-anchor="middle" fill="#9a3412">batch  (p2)</text>
+      <text x="75" y="125" text-anchor="middle" font-size="10" font-style="italic" fill="#64748b">binary action space</text>
+      <text x="75" y="140" text-anchor="middle" font-size="10" font-style="italic" fill="#64748b">— no human in the loop —</text>
+    </g>
+  </g>
+
+  <!-- Main-flow arrows -->
+  <line x1="78" y1="170" x2="110" y2="170" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="260" y1="170" x2="290" y2="170" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="430" y1="170" x2="460" y2="170" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="445" y="160" text-anchor="middle" font-size="10" fill="#64748b" font-style="italic">no match</text>
+  <line x1="620" y1="170" x2="650" y2="170" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="830" y1="170" x2="870" y2="170" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Rules short-circuit arc -->
+  <path d="M 360 120 C 360 45, 945 45, 945 90" stroke="#eab308" stroke-width="1.8" fill="none" marker-end="url(#arrow-skip)"/>
+  <text x="650" y="52" text-anchor="middle" font-size="10.5" fill="#854d0e" font-style="italic">match? yes → skip to action</text>
+
+  <!-- Outcome box -->
+  <g transform="translate(650, 360)">
+    <rect width="180" height="80" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="1.5"/>
+    <text x="90" y="26" text-anchor="middle" font-size="13" font-weight="600" fill="#0f172a">Agent feedback tool</text>
+    <line x1="20" y1="38" x2="160" y2="38" stroke="#cbd5e1"/>
+    <text x="90" y="58" text-anchor="middle" font-size="11" fill="#475569">agent calls routing_feedback</text>
+    <text x="90" y="75" text-anchor="middle" font-size="11" fill="#475569">after each turn → reward</text>
+  </g>
+
+  <!-- Action → Outcome arrow -->
+  <path d="M 945 260 Q 945 320 830 395" stroke="#334155" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+  <text x="925" y="325" font-size="10" fill="#64748b" font-style="italic">agent acts + reports</text>
+
+  <!-- Reward → Bandit (online) -->
+  <path d="M 690 360 L 690 220" stroke="#0ea5e9" stroke-width="1.8" fill="none" marker-end="url(#arrow-reward)"/>
+  <text x="700" y="295" font-size="10.5" fill="#0369a1" font-weight="600">reward (online)</text>
+
+  <!-- Labels → Classifier (nightly) -->
+  <path d="M 650 415 L 360 415 L 360 255 L 540 255 L 540 220" stroke="#a855f7" stroke-width="1.8" fill="none" stroke-dasharray="5 3" marker-end="url(#arrow-label)"/>
+  <text x="490" y="407" text-anchor="middle" font-size="10.5" fill="#7e22ce" font-weight="600">labels (nightly retrain)</text>
+
+  <!-- Design notes -->
+  <g transform="translate(20, 475)">
+    <rect width="1160" height="150" rx="10" fill="#fefefe" stroke="#e2e8f0"/>
+    <text x="16" y="26" font-size="13" font-weight="600" fill="#0f172a">How the two learning loops compose</text>
+
+    <g font-size="11.5" fill="#334155">
+      <text x="16" y="52"><tspan font-weight="600" fill="#0369a1">Bandit</tspan> trains on <tspan font-weight="600">rewards</tspan> (scalar, noisy, per event). Adapts online — reacts to operational drift, queue depth, tenant-specific cost. LinUCB's uncertainty bonus keeps it exploring ambiguous events.</text>
+      <text x="16" y="74"><tspan font-weight="600" fill="#7e22ce">Classifier</tspan> trains on <tspan font-weight="600">labels</tspan> derived from the same agent feedback tool (accumulated). Retrains offline, nightly / weekly, via weak supervision from rule-matched events + agent-reported verdicts on ambiguous ones.</text>
+      <text x="16" y="96"><tspan font-weight="600" fill="#854d0e">Rules</tspan> are the <tspan font-weight="600">sanity floor</tspan>: they short-circuit the obvious (JIRA P0, Slack @oncall, Stripe dispute ≥ $N) so the bandit's exploration budget is spent only on genuinely ambiguous events.</text>
+      <text x="16" y="118">The <tspan font-weight="600">reward function</tspan> is driven entirely by the agent's feedback tool — no humans: <tspan font-family="monospace">+1 appropriate</tspan> · <tspan font-family="monospace">−0.5 too_urgent</tspan> · <tspan font-family="monospace">−0.5 too_slow</tspan> · <tspan font-family="monospace">−1 irrelevant</tspan>. Tiny, well-defined verdict vocabulary.</text>
+      <text x="16" y="140">Drift safety net: <tspan font-weight="600">prequential accuracy</tspan> + <tspan font-weight="600">ADWIN</tspan> alarms on the classifier + reward-distribution monitoring on the bandit (if mean agent reward drifts meaningfully, alert).</text>
+    </g>
+  </g>
+</svg>

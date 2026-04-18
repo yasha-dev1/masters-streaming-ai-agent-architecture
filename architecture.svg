@@ -1,0 +1,174 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+    <marker id="arrow-fast" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#10b981"/>
+    </marker>
+    <marker id="arrow-batch" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#f97316"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="600" y="32" text-anchor="middle" font-size="20" font-weight="600" fill="#0f172a">Proposed Context Management System — Architecture</text>
+  <text x="600" y="52" text-anchor="middle" font-size="12" fill="#64748b">Open-source alternative to RTCE, with MCP Streaming Resources profile at the agent edge</text>
+
+  <!-- CMS dashed boundary -->
+  <rect x="200" y="80" width="740" height="360" rx="14" fill="#fafbff" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="220" y="102" font-size="13" font-weight="600" fill="#6366f1">Context Management System</text>
+  <text x="220" y="120" font-size="11" fill="#6366f1" font-style="italic">(event-based internally; MCP-facing externally)</text>
+
+  <!-- Sources -->
+  <g transform="translate(20,100)">
+    <rect width="150" height="310" rx="10" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
+    <text x="75" y="26" text-anchor="middle" font-size="14" font-weight="600" fill="#0f172a">Event Sources</text>
+    <g font-size="12" fill="#334155">
+      <rect x="15" y="46" width="120" height="32" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="75" y="66" text-anchor="middle">Slack</text>
+
+      <rect x="15" y="88" width="120" height="32" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="75" y="108" text-anchor="middle">JIRA</text>
+
+      <rect x="15" y="130" width="120" height="32" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="75" y="150" text-anchor="middle">E-commerce</text>
+
+      <rect x="15" y="172" width="120" height="32" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="75" y="192" text-anchor="middle">Mobile / Web</text>
+
+      <rect x="15" y="214" width="120" height="32" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="75" y="234" text-anchor="middle">CDC / DB</text>
+
+      <text x="75" y="280" text-anchor="middle" fill="#64748b" font-style="italic">(heterogeneous,</text>
+      <text x="75" y="296" text-anchor="middle" fill="#64748b" font-style="italic">1000s/min)</text>
+    </g>
+  </g>
+
+  <!-- Event Classification -->
+  <g transform="translate(225, 200)">
+    <rect width="160" height="130" rx="10" fill="#eef2ff" stroke="#6366f1" stroke-width="1.5"/>
+    <text x="80" y="30" text-anchor="middle" font-size="13" font-weight="600" fill="#3730a3">Event</text>
+    <text x="80" y="48" text-anchor="middle" font-size="13" font-weight="600" fill="#3730a3">Classification</text>
+    <line x1="20" y1="60" x2="140" y2="60" stroke="#c7d2fe" stroke-width="1"/>
+    <text x="80" y="80" text-anchor="middle" font-size="11" fill="#475569">rules + small model</text>
+    <text x="80" y="96" text-anchor="middle" font-size="11" fill="#475569">→ fast · batch · both</text>
+    <text x="80" y="114" text-anchor="middle" font-size="11" fill="#475569">priority: p0 / p1 / p2</text>
+  </g>
+
+  <!-- Fast queue -->
+  <g transform="translate(420, 130)">
+    <rect width="160" height="80" rx="10" fill="#ecfdf5" stroke="#10b981" stroke-width="1.5"/>
+    <text x="80" y="30" text-anchor="middle" font-size="13" font-weight="600" fill="#065f46">Fast Queue</text>
+    <text x="80" y="52" text-anchor="middle" font-size="11" fill="#065f46">low-latency · signal-grade</text>
+    <text x="80" y="68" text-anchor="middle" font-size="11" fill="#065f46">urgent events (ms–s)</text>
+  </g>
+
+  <!-- Batch queue -->
+  <g transform="translate(420, 320)">
+    <rect width="160" height="80" rx="10" fill="#fff7ed" stroke="#f97316" stroke-width="1.5"/>
+    <text x="80" y="30" text-anchor="middle" font-size="13" font-weight="600" fill="#9a3412">Batch Queue</text>
+    <text x="80" y="52" text-anchor="middle" font-size="11" fill="#9a3412">aggregated Context Units</text>
+    <text x="80" y="68" text-anchor="middle" font-size="11" fill="#9a3412">windowed · summarised</text>
+  </g>
+
+  <!-- Context Engine / Materialised views -->
+  <g transform="translate(615, 195)">
+    <rect width="200" height="140" rx="10" fill="#faf5ff" stroke="#a855f7" stroke-width="1.5"/>
+    <text x="100" y="30" text-anchor="middle" font-size="13" font-weight="600" fill="#6b21a8">Context Engine</text>
+    <line x1="20" y1="42" x2="180" y2="42" stroke="#e9d5ff" stroke-width="1"/>
+    <text x="100" y="62" text-anchor="middle" font-size="11" fill="#475569">materialised per-entity views</text>
+    <text x="100" y="80" text-anchor="middle" font-size="11" fill="#475569">filter · authorise · route</text>
+    <text x="100" y="98" text-anchor="middle" font-size="11" fill="#475569">per-subscription cursor</text>
+    <text x="100" y="116" text-anchor="middle" font-size="11" fill="#475569">back-pressure · priority</text>
+  </g>
+
+  <!-- MCP interface -->
+  <g transform="translate(845, 95)">
+    <rect width="85" height="330" rx="10" fill="#fef2f2" stroke="#ef4444" stroke-width="1.5"/>
+    <text x="42" y="165" text-anchor="middle" font-size="13" font-weight="600" fill="#991b1b" transform="rotate(-90 42 165)">MCP Streaming Resources</text>
+    <text x="42" y="235" text-anchor="middle" font-size="11" fill="#991b1b" transform="rotate(-90 42 235)">subscribe · notify · flow</text>
+  </g>
+
+  <!-- Agents -->
+  <g transform="translate(960, 95)">
+    <rect width="220" height="330" rx="10" fill="#f8fafc" stroke="#334155" stroke-width="1.5"/>
+    <text x="110" y="26" text-anchor="middle" font-size="14" font-weight="600" fill="#0f172a">AI Agents</text>
+    <text x="110" y="44" text-anchor="middle" font-size="11" fill="#64748b" font-style="italic">(routed by partition key)</text>
+
+    <g font-size="11" fill="#334155">
+      <rect x="20" y="64" width="180" height="44" rx="8" fill="#ffffff" stroke="#94a3b8"/>
+      <circle cx="42" cy="86" r="12" fill="#e2e8f0" stroke="#64748b"/>
+      <text x="42" y="90" text-anchor="middle" font-size="10">A1</text>
+      <text x="115" y="82" font-size="10.5" fill="#334155">key: customer:42</text>
+      <text x="115" y="98" font-size="10" fill="#64748b">conversation / triage</text>
+
+      <rect x="20" y="120" width="180" height="44" rx="8" fill="#ffffff" stroke="#94a3b8"/>
+      <circle cx="42" cy="142" r="12" fill="#e2e8f0" stroke="#64748b"/>
+      <text x="42" y="146" text-anchor="middle" font-size="10">A2</text>
+      <text x="115" y="138" font-size="10.5" fill="#334155">key: customer:87</text>
+      <text x="115" y="154" font-size="10" fill="#64748b">conversation / triage</text>
+
+      <rect x="20" y="176" width="180" height="44" rx="8" fill="#ffffff" stroke="#94a3b8"/>
+      <circle cx="42" cy="198" r="12" fill="#e2e8f0" stroke="#64748b"/>
+      <text x="42" y="202" text-anchor="middle" font-size="10">B1</text>
+      <text x="115" y="194" font-size="10.5" fill="#334155">key: order:9931</text>
+      <text x="115" y="210" font-size="10" fill="#64748b">compliance</text>
+
+      <rect x="20" y="232" width="180" height="44" rx="8" fill="#ffffff" stroke="#94a3b8"/>
+      <circle cx="42" cy="254" r="12" fill="#e2e8f0" stroke="#64748b"/>
+      <text x="42" y="258" text-anchor="middle" font-size="10">C</text>
+      <text x="115" y="250" font-size="10.5" fill="#334155">key: tenant:acme</text>
+      <text x="115" y="266" font-size="10" fill="#64748b">analytics</text>
+
+      <text x="110" y="300" text-anchor="middle" font-size="10" fill="#64748b" font-style="italic">one agent per partition key</text>
+    </g>
+  </g>
+
+  <!-- Arrows -->
+  <!-- Sources → Classifier -->
+  <line x1="170" y1="255" x2="225" y2="262" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Classifier → Fast -->
+  <path d="M 385 235 Q 405 190 420 170" stroke="#10b981" stroke-width="1.8" fill="none" marker-end="url(#arrow-fast)"/>
+  <!-- Classifier → Batch -->
+  <path d="M 385 295 Q 405 335 420 360" stroke="#f97316" stroke-width="1.8" fill="none" marker-end="url(#arrow-batch)"/>
+
+  <!-- Fast → Engine -->
+  <path d="M 580 170 Q 605 200 615 230" stroke="#10b981" stroke-width="1.8" fill="none" marker-end="url(#arrow-fast)"/>
+  <!-- Batch → Engine -->
+  <path d="M 580 360 Q 605 330 615 300" stroke="#f97316" stroke-width="1.8" fill="none" marker-end="url(#arrow-batch)"/>
+
+  <!-- Engine → MCP -->
+  <line x1="815" y1="265" x2="845" y2="260" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- MCP → Agents -->
+  <line x1="930" y1="260" x2="960" y2="260" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- Agents → MCP (subscribe, dotted) -->
+  <path d="M 960 340 Q 945 330 930 330" stroke="#64748b" stroke-width="1.2" fill="none" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <text x="945" y="320" font-size="10" fill="#64748b" font-style="italic">resources/subscribe</text>
+
+  <!-- Notes -->
+  <g transform="translate(20, 475)">
+    <rect x="0" y="0" width="1160" height="260" rx="10" fill="#fefefe" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="16" y="24" font-size="13" font-weight="600" fill="#0f172a">Design notes</text>
+
+    <g font-size="11.5" fill="#334155">
+      <text x="16" y="52" font-weight="600" fill="#065f46">① Fast / Batch queue ≠ Lambda architecture.</text>
+      <text x="16" y="70">This is not a dual-codebase batch-vs-stream split. Both queues are sinks of a single streaming topology (Kappa+/Streamhouse).</text>
+      <text x="16" y="86">The split exists only because some events must reach agents in milliseconds (p0 Slack DM, Stripe dispute, oncall ping) while others</text>
+      <text x="16" y="102">are more useful after windowed aggregation into Context Units. Same log, two delivery latencies.</text>
+
+      <text x="16" y="130" font-weight="600" fill="#6366f1">② The Context Management System is event-based internally, MCP-facing externally.</text>
+      <text x="16" y="148">Inside the dashed boundary: Kafka/Redpanda topics, Flink jobs, materialised Paimon/Iceberg views. Agents never see any of this.</text>
+      <text x="16" y="164">They only see the MCP Streaming Resources interface — a stable protocol surface that hides every internal storage / topology decision.</text>
+
+      <text x="16" y="192" font-weight="600" fill="#334155">③ Agents are routed by partition key.</text>
+      <text x="16" y="210">Each event carries a partition key (customer id, order id, tenant id). The Context Engine routes the event to the agent bound to that key,</text>
+      <text x="16" y="226">preserving per-entity ordering and conversation continuity — one agent per key.</text>
+
+      <text x="16" y="250"><tspan font-weight="600" fill="#ef4444">④ The Context Engine is the authorisation boundary.</tspan>  It filters events per-subscription, enforces tenant/session scope on each resource URI, and owns back-pressure + priority routing.</text>
+    </g>
+  </g>
+</svg>
