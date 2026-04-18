@@ -74,9 +74,37 @@ A commercial system with this exact architectural shape already exists: Confluen
 - Active MCP SEPs tracked (SEP-2495, SEP-2532, SEP-2567, SEP-2575): <https://github.com/modelcontextprotocol/specification/discussions>
 - Full survey + profile draft: `research/push-protocol/report.md`
 
+## Evaluation
+
+![ProAgentBench dataset overview](evaluation-dataset.svg)
+
+The Context Engine is evaluated on **ProAgentBench** — Tang et al., *ProAgentBench: Evaluating LLM Agents for Proactive Assistance with Real-World Data*, arXiv:2602.04482 (Feb 2026) [<https://arxiv.org/abs/2602.04482>]. It is the closest public benchmark to the thesis's target workload.
+
+**What the dataset is:**
+
+- **Scale.** 28,000+ events collected from 500+ hours of *real* user sessions (not LLM-synthesised). Privacy-compliant. Released by the authors under an open licence.
+- **Burstiness `B = 0.787`.** The event arrival process is strongly bursty — clumps of activity separated by quiet periods — as opposed to synthetic Poisson streams where `B ≈ 0`. The paper's core finding is that synthetic streams fail to capture authentic human decision patterns, so this property must be preserved.
+- **Hierarchical task framework:**
+  - *Task 1 — Timing prediction.* Given the event stream up to time *t*, decide whether the agent should intervene now. Isomorphic to our RQ2 `{fast, batch}` routing decision.
+  - *Task 2 — Assist content generation.* Given an intervention window, produce the assistance text. Exercises our Context Unit shape (RQ3) and MCP push delivery (RQ4).
+- **Metrics.** Appropriateness and timeliness of proactive suggestions. Maps cleanly onto our `routing_feedback` verdict vocabulary (`appropriate` / `too_urgent` / `too_slow` / `irrelevant`).
+- **Baselines.** LLM- and VLM-based agents evaluated in the paper, with the finding that long-term memory + historical context lift prediction accuracy — which is the exact argument for maintaining the Context Engine's materialised views.
+
+**How we use it:**
+
+1. **Offline classifier evaluation.** Timing-prediction labels are ground truth for measuring the LightGBM/XGBoost urgency classifier (RQ2, Stage 3) before the bandit is engaged.
+2. **Online bandit evaluation.** Replay the event stream through the full pipeline; measure per-event reward, regret vs. oracle routing, and drift stability (prequential accuracy, ADWIN alarms).
+3. **Head-to-head delivery benchmark.** Same workload replayed into three delivery backends — RTCE (pull-only), Confluent Streaming Agents (in-pipeline push), our Context Engine (subscribe + notify) — measuring latency-to-agent, missed events, and token waste attributable to `too_urgent` misrouting.
+4. **Synthetic ablation.** Flatten the burst distribution to `B ≈ 0` and re-run; quantify how much of the fast-queue + back-pressure design is justified only under real burstiness.
+
 ## Deliverables
 
 1. Thesis report (this document's parent) synthesising RQ1–RQ5.
 2. **MCP Streaming Resources profile specification** (draft SEP-compatible).
 3. **Reference Context Engine implementation** — open-source, backed by a free-tier streaming stack (Redpanda + Flink + Paimon), exposing the profile.
-4. Empirical benchmark against RTCE (pull-only) and Confluent Streaming Agents (in-pipeline push) on a shared workload.
+4. **Empirical benchmark** against RTCE (pull-only) and Confluent Streaming Agents (in-pipeline push) on a shared workload.
+   - **Proposed workload: ProAgentBench** — Tang et al., *ProAgentBench: Evaluating LLM Agents for Proactive Assistance with Real-World Data*, arXiv:2602.04482 (Feb 2026). <https://arxiv.org/abs/2602.04482>
+   - 28,000+ events from 500+ hours of real user sessions with preserved bursty interaction patterns (burstiness `B = 0.787`), not LLM-synthesised.
+   - Hierarchical tasks: (i) **timing prediction** — when to intervene — maps directly onto our RQ2 fast-vs-batch routing decision; (ii) **assist content generation** — what to deliver — exercises our Context Unit shape (RQ3) and MCP push delivery (RQ4).
+   - Metrics already match the loop we need: timing appropriateness + assist-content quality ≈ our `routing_feedback` verdict vocabulary (`appropriate` / `too_urgent` / `too_slow` / `irrelevant`).
+   - Real-event-stream data (vs. synthetic) also directly validates the paper's finding that long-term memory + historical context lift prediction accuracy — which is exactly what the Context Engine's materialised views are for.
