@@ -69,34 +69,40 @@ The `event.subject` field doubles as the Kafka partition key, guaranteeing per-e
 ## Research questions
 
 - **RQ1 — Streaming architecture.** Lambda vs Kappa vs Kappa+/Streamhouse for a context engine feeding agents? *[see `research/RQ1-lambda-vs-kappa.md`]*
-- **RQ2 — Event classification.** How to decide, per event, whether it belongs on the fast path, the batch path, or both? *[see `research/RQ2-event-classification.md`]* — detailed pipeline below.
+- **RQ2 — Event classification.** Per-event fast/batch routing via **per-entity, label-free anomaly detection** (Cloudflare-inspired), not supervised urgency classification. *[reframe in `research/RQ2-anomaly-detection-reframe.md`; original survey in `research/RQ2-event-classification.md`]* — pipeline below.
 - **RQ3 — Aggregation.** Events for the same entity (e.g. customer id) are grouped together and released to the next stage on a windowed timeframe. *[see `research/RQ3-batch-aggregation.md`]*
 - **RQ4 — Delivery surface.** What protocol carries the `(event, context)` envelope from the engine to a stateless agent? Decision: Kafka direct, partitioned by entity key — surveyed against MCP Streaming push, MCP pull, and the broader landscape. *[see `research/RQ4-context-distribution.md` + `research/push-protocol/report.md`]*
 
-## RQ2 — Proposed classification pipeline
+## RQ2 — Event classification: per-entity anomaly detection
 
 ![Event classification pipeline](rq2-classification.svg)
 
+The earlier draft framed routing as **supervised urgency classification** — a calibrated `p(urgent)` classifier (LightGBM/XGBoost) plus a contextual bandit that *learned urgency* from downstream agent verdicts. That framing is abandoned. It is structurally ill-posed (no independent urgency labels exist — the only signal is delayed, selection-biased, policy-dependent agent feedback) and it does not scale: a single global model is a *centralized* learner bolted onto a *partitioned* streaming architecture, retrained as sources/entities/drift grow. The full critique and literature are in `research/RQ2-anomaly-detection-reframe.md`; the evaluation in `research/evaluation-methodology.md`.
+
+The replacement, inspired by how Cloudflare detects DDoS/anomalies at scale (per-customer adaptive baselines, deviation *scoring* not labeled classification, customer-tunable sensitivity, ~1M unsupervised models/day), is **per-entity, label-free streaming anomaly detection**, two-level by `(entity × source-type)`:
+
+- **Entity = the CloudEvent `subject`** (`customer:42`, `service:checkout`) keys the baseline — which is *already* the Kafka partition key and Flink `keyBy`, so anomaly state shards along the axis the system already scales on.
+- **Feature schema per source-type** — a Slack/JIRA/telemetry feature extractor; adding a source is a new extractor (+ optional rules), never a global retrain.
+
 **How it works:**
 
-- **Stage 1 — Envelope.** Every ingested event is wrapped in a CloudEvents v1.0 envelope by a per-source adapter. Extracts structured features (source, type, time, priority hints, subject, tenant). Essentially free (<1 ms).
-- **Stage 2 — Declarative rules.** A small, auditable rule set (JsonLogic / Drools) short-circuits the obvious patterns — JIRA P0, Slack @oncall, Stripe dispute ≥ $N, PagerDuty incident — straight to the routing action. Keeps the bandit's exploration budget focused on the genuinely ambiguous events.
-- **Stage 3 — Calibrated classifier.** LightGBM / XGBoost on envelope features (plus an optional small text embedding). Emits `p(urgent)` and a calibrated uncertainty estimate. CPU-only, p95 < 5 ms. Trained offline.
-- **Stage 5 — Contextual bandit.** LinUCB or Thompson Sampling (Vowpal Wabbit `--cb_explore_adf`). Context = envelope features + classifier score + classifier uncertainty + operational state (queue depth, time-of-day, tenant). Actions = `{fast, batch}` — binary. The agents themselves close the feedback loop. Picks the action with the highest uncertainty-adjusted expected reward.
-- **Agent feedback — fully automated reward loop.** Every agent writes a `routing_feedback` record to the `cms.feedback.v1` Kafka topic once per event it consumes. The record contains `{event_id, verdict}`, where `verdict ∈ {appropriate, too_urgent, too_slow, irrelevant}` — a tiny, well-defined vocabulary. No humans involved.
-- **Two learning loops on different clocks, both fed by that tool:**
-  - *Online* — verdict maps to scalar **reward** (`+1` appropriate, `−0.5` too_urgent, `−0.5` too_slow, `−1` irrelevant). Bandit updates per event.
-  - *Offline* — accumulated `(event, verdict)` pairs become **labels** for weak-supervision retraining of the classifier, nightly / weekly.
+- **Stage 1 — Envelope.** Per-source adapter wraps each event in a CloudEvents v1.0 envelope and extracts features — Layer A (source-agnostic: inter-arrival gap, event-type mix, actor entropy, novelty, time-of-day) and Layer B (source-specific). Volume-decoupled *ratios/compositions* are preferred over raw counts (Cloudflare's "top-5 browser proportion" trick) so legitimate spikes don't false-positive. Essentially free (<1 ms).
+- **Stage 2 — Rules (hard floor).** A small JsonLogic/Drools set (JIRA P0, Slack @oncall, Stripe dispute ≥ $N, PagerDuty incident) forces FAST. Re-cast from "short-circuit" to the **mandatory floor** for the *urgent-but-not-anomalous* class a detector provably misses.
+- **Stage 3 — Per-entity anomaly scorer.** Features enter already transformed *relative to the entity's own baseline* (robust z `(x−median)/MAD`; compositional JS/KL divergence). Default scorer is **HBOS** (`HBOS(p)=Σ log 1/hist_i(p)` — linear-time, mixed-type, *no per-entity covariance matrix*, scales to millions of entities) plus univariate **robust-z / Page-Hinkley** for the point/local deviations HBOS misses; **PCA+Mahalanobis** reserved as a per-source-type upgrade where features are correlated. Baselines live in Flink keyed state next to Graphiti — 5-min buckets, ~4-week window, daily refresh.
+- **Stage 4 — Decision (OR-gate + guards).** `route_to_fast = Rules(e) OR (s_anom > θ_source)`, past an **absolute-volume floor** and **multi-window confirmation** (short 5-min AND long 1–4 h must both cross — Google SRE multi-burn-rate). A *point* anomaly sends that event; a *window* anomaly emits one deduped **situation envelope**, not every raw event. The continuous score also ranks salience inside the batch lane.
+- **Agent feedback — tunes sensitivity, not a classifier.** Agents still write `{event_id, verdict}` (`verdict ∈ {appropriate, too_urgent, too_slow, irrelevant}`) to `cms.feedback.v1`. The verdict is now a **slow control signal** that nudges the per-source threshold `θ_source` (Cloudflare-style sensitivity levels) — `too_urgent` raises θ, `too_slow` lowers it — not a label that trains a model. A per-source EWMA/PID controller suffices; no labels, no nightly retrain.
 
 **Runtime behaviour:**
 
-| Event | Classifier | Ops state | Action | Agent verdict (tool call) | Reward | What the bandit learns |
-|---|---|---|---|---|---|---|
-| Stripe dispute $50K | `p=0.95` | fast queue healthy | **fast** | `appropriate` | `+1` | reinforce `fast` for high-value disputes |
-| `#random` chit-chat | `p=0.08` | — | **batch** | `appropriate` | `+0.1` | reinforce `batch` for low-score events |
-| JIRA P2 status update | `p=0.42` | healthy | **batch** (conservative default) | `appropriate` | `+0.2` | reinforce `batch` for mildly ambiguous, low-stakes events |
-| Verbose log alert | `p=0.61` | healthy | **fast** (explore) | `too_urgent` — agent burned tokens, event wasn't actionable | `−0.5` | learn: verbose log alerts don't justify fast-path cost |
-| Slack @oncall | — | — | **fast** *(rule short-circuit)* | — | — | bandit never sees it — exploration budget preserved for hard cases |
+| Event | Per-entity signal | Guard / rule | Action | Agent verdict | θ effect |
+|---|---|---|---|---|---|
+| Stripe dispute $50K on `customer:42` | order-value z ≫ customer's normal | past floor | **fast** (point anomaly) | `appropriate` | — |
+| Slack @oncall in `#incidents` | — | rule match | **fast** (rule floor) | — | scorer never consulted |
+| JIRA P0 on a daily-P0 service | not anomalous (expected) | rule match | **fast** (rule floor) | `appropriate` | detector alone would miss it |
+| `#random` chit-chat on `channel:random` | within baseline mix | — | **batch** | `appropriate` | — |
+| Error burst on `service:checkout` | event-type mix shift, both windows cross | past floor + multi-window | **fast** (one situation envelope) | `appropriate` | — |
+| Verbose log blip on `service:logs` | short window crosses, long doesn't | fails multi-window | **batch** | — | would-be `too_urgent` averted |
+| New `channel:launch` first message | novelty high, abs volume tiny | fails absolute floor | **batch** | — | unchanged |
 
 ## RQ4 — Delivery surface for stateless agents
 
@@ -108,7 +114,7 @@ Given the architectural commitments above (CMS owns context; agents are stateles
 
 The Context Engine produces `(event, context)` envelopes onto Kafka topics partitioned by entity key. Concrete conventions:
 
-- **Topics — split by lane.** `cms.events.fast.v1` (24 h retention, urgent events) and `cms.events.batch.v1` (7 d retention, windowed Context Units). Agent → engine feedback flows on `cms.feedback.v1`, where agents write `routing_feedback` verdicts that train the RQ2 bandit.
+- **Topics — split by lane.** `cms.events.fast.v1` (24 h retention, urgent events) and `cms.events.batch.v1` (7 d retention, windowed Context Units). Agent → engine feedback flows on `cms.feedback.v1`, where agents write `routing_feedback` verdicts that tune the RQ2 per-source anomaly sensitivity (`θ_source`).
 - **Partition key.** The CloudEvent `subject` field (`customer:42`, `order:9931`, `tenant:acme`). Kafka hashes the key to a single partition, so per-entity ordering is preserved across the consumer group. Cross-entity ordering is *not* preserved — agents only ever care about per-entity timelines.
 - **Partition count.** 50 for fast, 30 for batch. Sized for peak parallelism; over-provisioned because partition count is hard to change live.
 - **Consumer groups — one per agent role.** `cms.agents.triage`, `cms.agents.compliance`, `cms.agents.analytics`. Multiple roles on the same topic give independent fan-out with separate offset cursors. Within a role, replicas share partitions via the cooperative-sticky assignor (Kafka ≥ 2.4) to avoid stop-the-world rebalances.
@@ -169,7 +175,7 @@ async def main():
         # ec.event   -> typed CloudEvent
         # ec.context -> { entity_state, recent_events, relevant_facts }
         result = await my_llm_call(ec.event, ec.context)
-        await ec.feedback("appropriate")    # closes the RQ2 bandit loop
+        await ec.feedback("appropriate")    # tunes the RQ2 anomaly sensitivity (θ_source)
 
 asyncio.run(main())
 ```
@@ -234,12 +240,14 @@ The Context Engine is evaluated on **ProAgentBench** — Tang et al., *ProAgentB
 - **Metrics.** Appropriateness and timeliness of proactive suggestions. Maps cleanly onto our `routing_feedback` verdict vocabulary (`appropriate` / `too_urgent` / `too_slow` / `irrelevant`).
 - **Baselines.** LLM- and VLM-based agents evaluated in the paper, with the finding that long-term memory + historical context lift prediction accuracy — which is the exact argument for maintaining the Context Engine's materialised views.
 
-**How we use it:**
+**How we use it** (full four-layer metric framework, experiment matrix, and statistical-rigor protocol in `research/evaluation-methodology.md`):
 
-1. **Offline classifier evaluation.** Timing-prediction labels are ground truth for measuring the LightGBM/XGBoost urgency classifier (RQ2, Stage 3) before the bandit is engaged.
-2. **Online bandit evaluation.** Replay the event stream through the full pipeline; measure per-event reward, regret vs. oracle routing, and drift stability (prequential accuracy, ADWIN alarms).
-3. **Head-to-head delivery benchmark.** Same workload replayed into three delivery backends — RTCE (pull-only over MCP), Confluent Streaming Agents (in-pipeline push, proprietary), our Context Engine (Kafka-direct `(event, context)` envelopes) — measuring latency-to-agent, missed events, and token waste attributable to `too_urgent` misrouting.
-4. **Synthetic ablation.** Flatten the burst distribution to `B ≈ 0` and re-run; quantify how much of the fast-queue + back-pressure design is justified only under real burstiness.
+1. **L1 — offline routing quality.** The fast path is scored as *streaming anomaly detection*, not point classification: headline **VUS-PR** and **affiliation-F1** (PA-resistant), NAB latency score under the `reward_low_FN_rate` profile, recall@FPR≤1%. Naive point-adjusted F1 is explicitly avoided — Kim et al. (AAAI 2022) show a random scorer "wins" under it.
+2. **L2 — online routing under drift + system load.** Replay the stream *prequentially*; measure prequential AUC, cumulative regret vs. oracle routing, doubly-robust off-policy estimates, calibration (ECE/Brier), and drift detection-delay/recovery — alongside system metrics (p99/p99.9 event-time latency-to-agent, sustainable throughput, consumer/watermark lag, recovery time).
+3. **L3 — head-to-head delivery benchmark.** Same workload replayed into three backends — RTCE (pull-only over MCP), Confluent Streaming Agents (in-pipeline push, proprietary), our Context Engine (Kafka-direct envelopes) — measuring latency-to-agent (p50–p99.9, coordinated-omission-corrected), missed events, and counterfactually-defined token waste from `too_urgent` misrouting. Poll interval is swept; report the latency/cost/staleness Pareto.
+4. **Burstiness ablation.** Flatten the distribution to `B ≈ 0` (same event set) and re-run; quantify how much of the engine's advantage is justified only under real burstiness (`B = 0.787`).
+5. **Lc — context-retrieval quality.** The Context Engine's core job — assembling the right `(event, context)` — is scored *process-oriented*, grounded in **ContextBench** (arXiv:2602.05892): **context recall / precision / F1** and *assembly drop* of the served envelope against a per-event gold context (the Graphiti facts truly required to act), with the gold-context annotate→verify→minimise protocol retargeted to the event-stream domain. Composed with LongMemEval/LoCoMo retrieval probes.
+6. **Burst & scalability of RQ2 + RQ4.** Generate a replayable stream at a target burstiness (Pareto ON/OFF superposition, finite-size-corrected `A_n`; Fano/Hurst cross-checks) and measure scalability the **Theodolite** way — resource *demand to sustain a load intensity*, swept over events/s × entity cardinality × partitions — proving per-entity state shards on the partition key. The headline burst result: FAST-lane urgent-event **p99.9 SLO attainment vs. offered load**, two-lane minus single-lane gap plotted against `B`, with the *self-DoS* risk (burst-is-the-anomaly) measured and the routing guards shown to act as load shedding. (Full methodology, metrics, and experiment matrix E9–E11 in `research/evaluation-methodology.md` §8.)
 
 ## Deliverables
 

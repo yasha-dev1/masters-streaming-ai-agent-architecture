@@ -40,36 +40,93 @@ Cloudflare runs the largest production anomaly-detection fleet in the industry, 
 
 ## 3. The reframe: per-entity streaming anomaly detection as the fast-path primitive
 
-Replace `p(urgent)` with a **per-entity deviation score** `s_anom(event | baseline_subject)`, keyed by CloudEvent `subject`, computed inside the existing Kappa+ Flink job. The toolbox gives a concrete, defensible three-tier design:
+Replace `p(urgent)` with a **per-entity deviation score** `s_anom(event | baseline_subject)`, keyed by CloudEvent `subject`, computed inside the existing Kappa+ Flink job.
 
-- **Tier 1 — O(1) univariate per-entity statistics (the FAST-lane workhorse).** Per `subject`, maintain a rolling **robust z-score** (median + MAD, not mean + σ, for outlier resistance) plus **Page-Hinkley / CUSUM** for change-points and EWMA/PEWMA for recency [15, 16]. Cost is constant memory and sub-microsecond per event; this is Cloudflare's actual notification math (`|z| > 3.5` AND absolute floor [8]). Use Welford's algorithm for online mean/variance in Flink keyed RocksDB state. Volume-invariant *ratios* (error-event fraction, negative-sentiment fraction, P0/severity mix, distinct-actor entropy) are baselined here, **not raw volume**, to avoid flagging benign campaign spikes.
+### 3.1 The one structural difference from Cloudflare — and how to absorb it
 
-- **Tier 2 — multivariate outlier scoring for feature combinations Tier 1 misses.** **Half-Space Trees** (online isolation forest, River; ~10 trees, height 8, window 250) as the primary, or **Robust Random Cut Forest** (Guha et al., ICML 2016; AWS Kinesis pedigree, 51.7 on NAB) as the heavier, more principled alternative [17, 18]. One small forest per hot entity. Cloudflare's HBOS (linear-time histogram scoring) is the cheapest multivariate option and our default when feature count is small [6].
+Cloudflare's events are **homogeneous**: every event is an HTTP request sharing one schema (browser, ASN, path, status), so a single per-zone feature vector works. The CMS ingests **heterogeneous** events — a Slack message, a JIRA transition, and a checkout event share no fields — so there cannot be one global feature vector. The design is therefore **two-level**:
 
-- **Drift detectors (ADWIN/KSWIN) govern the baseline lifecycle, never the trigger.** A drift event *resets* an entity's baseline; it does not itself fire the FAST lane. Scorer governs routing, drift governs adaptation [19].
+- **Entity = the "zone".** The CloudEvent `subject` (`customer:42`, `service:checkout`, `ticket:PROJ-1`) keys the baseline, exactly as Cloudflare keys per zone. This is *already* the Kafka partition key and the Flink `keyBy` — so per-entity anomaly state shards along the boundary the architecture already scales on (see §4.5).
+- **Feature schema = per source-type.** One detector per *source-type* (Slack / JIRA / telemetry), its baseline statistics keyed per `subject`. Adding a source means writing a feature extractor + (optional) rules — never retraining a global model.
 
-**Where it lives.** Flink keys by `subject`; per-entity rolling statistics sit in keyed RocksDB state next to — and are persisted into — the per-entity Graphiti temporal knowledge graph, so "what is normal for `customer:42` over time" is co-located with the entity's existing memory. Iceberg/Paimon replay lets baselines be *deterministically recomputed* when the statistic changes — a Kappa advantage a stateful supervised model cannot match [21, 22]. Defensible default cadence, borrowed from Cloudflare: 5-minute buckets, rolling ~4-week / 7-day window, retrain daily ("very little intraday drift") [5].
+### 3.2 What to baseline: volume-decoupled features in two layers
+
+Cloudflare's golden rule is the one to copy: **baseline composition/ratio features, not raw counts** — their canonical feature is *"the proportion of users across the top-5 browsers"* [5], chosen precisely because it stays stationary when volume spikes legitimately (flash sale, viral thread). Mirror it in two layers.
+
+**Layer A — source-agnostic envelope/arrival features** (computable for *every* event from the envelope + the per-entity arrival process):
+
+| Feature | Cloudflare analogue | Volume-decoupled |
+|---|---|---|
+| Inter-arrival gap vs entity baseline | burst signal | ✓ (ratio) |
+| Event-type **mix** in rolling window (proportions) | top-5 browser proportion | ✓ |
+| Actor/source **diversity** (entropy of distinct actors) | client-IP entropy | ✓ |
+| Novelty flags (first-ever event-type / actor / subject) | new ASN | ✓ |
+| Hour-of-day / day-of-week | seasonality covariate | ✓ |
+| Raw rate in window | request rate | ✗ — kept only behind the absolute-volume guard |
+
+**Layer B — source-specific content features** (per adapter):
+
+- **Slack:** message length, @mention count, `@here`/`@channel`, negativity/sentiment (small model), `?` present, thread-reply velocity, reaction velocity, off-hours flag, embedding distance from the channel's topic centroid.
+- **JIRA:** priority (ordinal), issue type, status-transition type (→ `blocked`/`reopened` weighted high), comment-burst rate, assignee change, watcher delta, time-to-SLA-breach.
+- **E-commerce / telemetry:** order value **z-scored against the customer's own normal**, refund/dispute amount, payment-failure flag, error-event fraction in window, latency-p95 breach, status-code mix shift, funnel-sequence anomaly.
+
+**Feed deviations, not raw values.** Each feature enters the detector already transformed *relative to the entity's own baseline*: numeric → per-entity robust z `(x − median)/MAD` (or straight into a per-entity histogram); compositional → Jensen-Shannon / KL divergence of the current window's mix from the entity baseline mix. The per-entity keying of those histograms/baselines *is* what makes "urgent" contextual rather than global.
+
+### 3.3 The scorer: HBOS (default) + robust-z, with Mahalanobis as an upgrade
+
+The two Cloudflare detectors bracket the design space, and the thesis should adopt both for the reasons Cloudflare did:
+
+- **HBOS — Histogram-Based Outlier Score** [27] is the **default per-entity scorer**. One univariate histogram per feature; the score is `HBOS(p) = Σ_{i=1}^{d} log(1 / hist_i(p))` — a discrete Naive-Bayes density (log-sum for float stability). It **assumes feature independence → linear time**, handles **mixed categorical + numeric** natively (counting for categoricals), uses **dynamic (equal-area) bins** for long-tailed event features, and normalizes each histogram to max-height 1.0 so features weight equally (`k ≈ √N` bins). Crucially it needs **no per-entity covariance matrix**, which is why Cloudflare runs it over 310M visitors in its analytics platform [6] — it scales to millions of entities. Documented weakness: it **cannot model feature correlations and misses *local* outliers** — so it is paired with the univariate detector below.
+- **Univariate robust-z / Page-Hinkley / CUSUM** [15, 16] run alongside on a few key scalar features to cover the *point/local* deviations HBOS misses (a single 10×-normal refund, one off-topic message). This is Cloudflare's actual notification math — `|z| > 3.5` AND an absolute floor [8] — computed in O(1) keyed state via Welford's algorithm.
+- **PCA + Mahalanobis** [5] is the **per-source-type upgrade** where features are known-correlated and the modelled entity count is modest. It captures correlations and admits a single global threshold λ via whitening — but needs a covariance matrix + PCA per entity, so it is reserved, not the default. (Cloudflare uses it for *DDoS*, where few zones are modelled and correlations carry the signal; HBOS for the high-cardinality analytics path.)
+- **Drift detectors (ADWIN/KSWIN)** [19] govern the **baseline lifecycle, never the trigger**: a drift alarm *resets* an entity's baseline; it does not itself fire FAST. Scorer routes; drift adapts.
+
+### 3.4 Where it lives and how often it refreshes
+
+Flink keys by `subject`; per-entity histograms/statistics sit in keyed RocksDB state next to — and persist into — the per-entity Graphiti temporal graph, so *"what is normal for `customer:42`"* is co-located with that entity's memory. Iceberg/Paimon replay lets baselines be **deterministically recomputed** when a statistic changes — a Kappa advantage a stateful supervised model cannot match [21, 22]. Default cadence, borrowed from Cloudflare [5]: **5-minute buckets, ~4-week rolling baseline, retrain daily** ("very little intraday drift").
 
 ---
 
-## 4. The honest synthesis (hybrid)
+## 4. The honest synthesis (hybrid) and the routing rule
 
-**Anomaly ≠ urgency, in both directions** — this must headline the chapter, not be buried:
+**Anomaly ≠ urgency, in both directions** — this headlines the chapter:
 
-- *Urgent but not anomalous:* a JIRA P0 or a 5xx burst on a service that 5xxes daily is high-importance yet statistically expected; a pure anomaly detector firing on rarity *misses* it.
-- *Anomalous but not urgent:* a brand-new low-traffic channel's first message is novel yet trivial; novelty ≠ importance, so a pure detector *false-alarms* [23, 24, 14].
+- *Urgent but not anomalous:* a JIRA P0, or a 5xx burst on a service that 5xxes daily, is high-importance yet statistically *expected*; a pure detector firing on rarity **misses** it.
+- *Anomalous but not urgent:* a new low-traffic channel's first message is novel yet trivial; novelty ≠ importance, so a pure detector **false-alarms** [23, 24, 14].
 
-Therefore the answer is **not** "replace the classifier with an anomaly detector." It is a hybrid trigger where each term covers the other's failure direction:
+So the answer is not "anomaly → FAST." It is a **layered rule** where rules cover the detector's blind spot and guards cover its over-firing:
 
 ```
-route_to_fast =  Rules(e)  OR  [ s_anom(e | baseline_subject) > θ_source ]
+for event e on entity E (source-type S):
+  if   Rules_S(e):                       -> FAST          # known-critical (P0, @oncall) + rule id
+  elif point_score(e | base_E) > θ_pt:   -> FAST          # this event is individually deviant
+  elif window_anomaly(E) past guards:    -> FAST (once)   # situation envelope, deduped per window
+  else:                                  -> BATCH
+        # guards = absolute-volume floor (Cloudflare "≥200") AND multi-window confirmation
+        #          (short 5-min AND long ~1–4h must both cross — Google SRE multi-burn-rate [26])
+        # θ_pt, θ_window are per-source, tuned by the feedback controller below
 ```
 
-`Rules(e)` is the existing JsonLogic/Drools layer (JIRA P0, Slack @oncall), now re-cast from "short-circuit for obvious cases" to the **mandatory floor** covering the urgent-but-expected class the detector provably misses. `s_anom` covers urgent-because-deviant. This mirrors production AIOps exactly — "ML-based but with rule-engine support" [25] — and Cloudflare itself layers ML scoring *on top of* deterministic signals rather than replacing them [10].
+i.e. `route_to_fast = Rules(e) OR ( s_anom(e | baseline_subject) > θ_source , past floor + multi-window )`. `Rules(e)` is the existing JsonLogic/Drools layer, re-cast from "short-circuit for obvious cases" to the **mandatory floor** for the urgent-but-expected class the detector provably misses; `s_anom` covers urgent-because-deviant. This mirrors production AIOps — "ML-based but with rule-engine support" [25] — and Cloudflare itself layers ML scoring *on top of* deterministic signals rather than replacing them [10].
 
-**Repurpose the bandit — keep the feedback loop, change its job.** Its original task (learn `p(urgent)` from verdicts) is unsalvageable for the structural reasons in §1. Its *new* task is well-posed and one-dimensional: **tune the per-source sensitivity scalar `θ_source`**, exactly Cloudflare's customer sensitivity levels [7, 9]. `too_urgent` verdicts → raise `θ` (less sensitive); `too_slow` → lower `θ`. Verdicts thus become a *slow, noisy control signal* (drift correction), not per-event ground truth. Firing uses the Google SRE **multi-window, multi-burn-rate** scheme — a short (5-min) AND a long (~1–4h) window must both cross — to suppress flapping [26]. Tuning one scalar per source from delayed feedback is a far better-posed control problem than learning a classifier from the same signal; a simple per-source EWMA/PID controller may be more defensible to a committee than full LinUCB.
+**Granularity — the subtle part.** Cloudflare detects anomalies at the **window** level ("is this 5-min window of zone X abnormal?"); the CMS routes **per event**. When a *rate/window* anomaly fires, do **not** flood the agent with 500 raw events — the anomaly is a **situation**: emit a single FAST **situation envelope** (the anomalous window as a Context Unit + the most-deviant triggering events), deduped per window. A *point/content* anomaly sends that one event. The continuous score (Cloudflare-style 1–99) is **reused** beyond the binary gate — it also ranks salience *within* the batch lane and weights the Context Unit.
 
-This keeps everything good about the old design — CloudEvents adapters, the rules layer, the feedback channel, the entity-keyed delivery — while removing the load-bearing component (`p(urgent)`) that depended on labels that do not exist. The supervised classifier is *demoted, not deleted*: it survives as an optional offline auditor, pre-empting the "why not just use a classifier?" objection.
+**Repurpose the bandit — keep the loop, change its job.** Learning `p(urgent)` from verdicts is unsalvageable (§1). The new task is well-posed and one-dimensional: **tune the per-source sensitivity scalars `θ_source`**, exactly Cloudflare's customer sensitivity levels [7, 9]. `too_urgent` verdicts → raise `θ` (less sensitive); `too_slow` → lower `θ`. Verdicts become a *slow control signal*, not per-event ground truth — a far better-posed problem than learning a classifier from the same signal, and a per-source EWMA/PID controller may be more defensible to a committee than full LinUCB. The supervised classifier is **demoted, not deleted**: it survives as an optional offline auditor, pre-empting the "why not just use a classifier?" objection.
+
+### 4.5 Why this scales — and why the supervised cascade did not
+
+This is the decisive axis (and the one the supervisor pressed):
+
+| | OLD: global supervised classifier | NEW: per-entity anomaly detection |
+|---|---|---|
+| **Partitioning** | One global model — a central component every event must traverse; cannot be sharded by entity | State keyed by `subject` = **the existing Kafka partition key / Flink `keyBy`**; shards along the axis the system already scales on |
+| **Adding a source** | Re-collect labels, retrain, re-validate the global model | Drop in a feature extractor (+ optional rules); other sources untouched |
+| **Label pipeline** | Needs labels at the event rate (LLM-oracle sampling cost grows with volume) | **Label-free**; baselines self-maintain from the stream |
+| **Cold start** | Blind on a new entity until labelled traffic accrues | Hierarchical fallback global → source-type → entity; rules fire from day one |
+| **Cost per entity** | Amortized, but the model is a single bottleneck and single point of staleness | HBOS is linear-time, no covariance matrix — Cloudflare runs it over **310M** entities [6]; ~1M models retrained daily for DDoS [5] |
+| **Drift** | Detect-then-retrain lag during which the global boundary is wrong | Per-entity baselines move with the entity; ADWIN resets only the affected key |
+
+The supervised cascade is a *centralized* learner bolted onto a *partitioned* streaming architecture — an impedance mismatch that surfaces precisely at scale. Per-entity anomaly detection is **partition-native**: it is the same shape as the rest of the pipeline, which is why Cloudflare can run a million models a day on it. State growth (one baseline per hot entity) is the new cost; it is bounded by hot-entity-only keyed state with LRU eviction and the group-fallback baseline (§6), Cloudflare's "recency register" pattern [6].
 
 ---
 
@@ -138,3 +195,4 @@ Because true urgency has no clean label, the fast-path is evaluated as a **strea
 24. scikit-learn — Novelty and Outlier Detection. https://scikit-learn.org/stable/modules/outlier_detection.html
 25. Ho et al. — A Survey of Time Series Anomaly Detection Methods in the AIOps Domain (2023). https://arxiv.org/abs/2308.00393
 26. Google SRE Workbook — Alerting on SLOs (multi-window, multi-burn-rate). https://sre.google/workbook/alerting-on-slos/
+27. Goldstein, M. & Dengel, A. (2012). *Histogram-based Outlier Score (HBOS): A fast Unsupervised Anomaly Detection Algorithm.* KI-2012 (Poster & Demo Track). https://www.goldiges.de/publications/HBOS-KI-2012.pdf

@@ -13,7 +13,7 @@ This report synthesises the answers to the five research questions (RQ1–RQ5) r
 **The five recommendations, integrated.**
 
 1. **Architecture (RQ1).** A streaming-first Kappa+ topology: Kafka hot log + Iceberg/Delta warehouse as replay source, Flink (or Spark Structured Streaming) as the single compute engine, bifurcated sinks for low-latency push and windowed-aggregation outputs.
-2. **Event classification (RQ2).** Four-stage cascade: CloudEvents envelope + per-source adapters → declarative rules (Drools/JsonLogic) → small distilled classifier (DistilBERT / fastText) → asynchronous LLM oracle for labeling and audit. Continuously re-tuned by a contextual bandit driven by downstream agent signals.
+2. **Event classification (RQ2).** *[Superseded — see `research/RQ2-anomaly-detection-reframe.md`.]* Per-entity, label-free streaming **anomaly detection** (Cloudflare-inspired): CloudEvents envelope + per-source adapters → declarative rules as a hard floor → per-entity HBOS + robust-z deviation scoring keyed by `subject` → OR-gate with absolute-floor + multi-window guards. Downstream agent verdicts tune the per-source sensitivity threshold `θ_source`, not a supervised classifier.
 3. **Batch aggregation (RQ3).** Events aggregated into *sessionized, entity-centric Context Units* (not time-bucket dumps) using hierarchical map-reduce summarisation, indexed in a vector + graph + keyword store. An explicit utility function `U(C) = E[Performance|C] − λ·tokens(C) − μ·staleness(C)` makes "optimality" testable.
 4. **Context distribution (RQ4).** Hybrid **notify-then-pull** protocol, modelled on MCP's resource-subscription primitive. The Context Engine is exposed as an MCP server; agents subscribe to typed predicates; the server pushes lightweight change signals and agents pull full payloads from resources/tools. Transactional outbox between write-side and notification-side is a correctness requirement, not optional.
 5. **Shared memory (RQ5).** Bitemporal append-only event log as source of truth; derived read-side projections combine a Graphiti-style temporal knowledge graph (with GraphRAG community summaries) and a vector index over chunk/entity/community embeddings. Collaborative-Memory-style two-tier partitioning (shared vs. per-agent private) with provenance on every fragment.
@@ -90,6 +90,8 @@ The rest of this report defends each component of this architecture against the 
 - Neither caveat applies at current thesis scope.
 
 ### 3.2 RQ2 — Event Classification (Fast-path vs. Batch-path)
+
+> **⚠ Superseded (post-supervisor-feedback).** The four-stage *supervised cascade* recommended below is no longer the design. It is structurally ill-posed (no independent urgency labels exist) and does not scale (a global model bolted onto a partitioned stream). RQ2 is reframed around **per-entity, label-free anomaly detection** (Cloudflare-inspired): rules as a hard floor `OR` a per-entity HBOS/robust-z deviation score past adaptive guards, with agent verdicts tuning per-source sensitivity `θ_source`. The section below is retained as the documented exploration that led there; the current design is in `research/RQ2-anomaly-detection-reframe.md`.
 
 **Paths considered** (detailed in `research/RQ2-event-classification.md`, 52 references):
 
