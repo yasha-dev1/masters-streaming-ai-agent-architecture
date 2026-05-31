@@ -16,27 +16,27 @@ A commercial system with this exact architectural shape already exists: Confluen
 
 Two opinionated stances frame the rest of the proposal; reviewers should read the diagram with both in mind.
 
-**Stateless agents — the CMS owns every token that reaches an LLM.** Agents are pure functions: their *entire* input is a single `(event, context)` envelope produced by the CMS, and their output is an action. There is no agent-side memory, no in-process cache, and no runtime callback into the engine to fetch additional context. All long-lived state (entity timelines, relations, recently-believed facts) lives inside the Context Engine, in [Graphiti](https://github.com/getzep/graphiti). This collapses two otherwise-tangled responsibilities — *deciding what context an agent needs* and *running an agent* — onto opposite sides of a clean contract.
+**Stateless agents — the CMS owns every token that reaches an LLM.** Agents are pure functions: their *entire* input is a single `(event, context)` envelope produced by the CMS, and their output is an action. There is no agent-side memory, no in-process cache, and no runtime callback into the engine to fetch additional context. All long-lived state (entity timelines, relations, recently-believed facts) lives inside the Context Engine, in a **custom bitemporal knowledge graph + RAG store** (the thesis's own design — see RQ5; Graphiti was evaluated and rejected for insufficient control and weak entity extraction). This collapses two otherwise-tangled responsibilities — *deciding what context an agent needs* and *running an agent* — onto opposite sides of a clean contract.
 
-**Generalizable delivery via Kafka.** Enriched `(event, context)` envelopes are produced to Kafka topics partitioned by entity key. Developers consume them with whatever runtime fits their workload — a long-lived async consumer, a Lambda-style ephemeral spawn, k8s, Modal, anything that speaks Kafka. The CMS does not dictate the agent runtime, language, or framework. MCP is used *internally to the engine* for the Graphiti memory layer, but the agent-facing edge is Kafka, not MCP. The trade-offs against MCP-streaming push and MCP-pull surfaces are surveyed in RQ4 below.
+**Generalizable delivery via Kafka.** Enriched `(event, context)` envelopes are produced to Kafka topics partitioned by entity key. Developers consume them with whatever runtime fits their workload — a long-lived async consumer, a Lambda-style ephemeral spawn, k8s, Modal, anything that speaks Kafka. The CMS does not dictate the agent runtime, language, or framework. MCP is used *internally to the engine* for the memory layer, but the agent-facing edge is Kafka, not MCP. The trade-offs against MCP-streaming push and MCP-pull surfaces are surveyed in RQ4 below.
 
 ## Proposed architecture
 
 ![Proposed Context Management System architecture](architecture.svg)
 
-*Heterogeneous events enter the Context Management System and are first routed by an Event Classification stage onto a fast lane (urgent, signal-grade) or a batch lane (aggregated Context Units) — a latency split, not a Lambda-style dual codebase. The Context Engine indexes events into Graphiti, materialises per-entity views, computes the `context` object per outgoing event, and produces `(event, context)` envelopes onto partitioned Kafka topics. Agents are stateless consumers of those topics — events are routed to the right agent by partition key.*
+*Heterogeneous events enter the Context Management System and are first routed by an Event Classification stage onto a fast lane (urgent, signal-grade) or a batch lane (aggregated Context Units) — a latency split, not a Lambda-style dual codebase. The Context Engine indexes events into its bitemporal graph + RAG store, materialises per-entity views, computes the `context` object per outgoing event, and produces `(event, context)` envelopes onto partitioned Kafka topics. Agents are stateless consumers of those topics — events are routed to the right agent by partition key.*
 
-**Processing note.** Both lanes flow through the same indexing path inside the Context Engine; only the *moment of publish* differs (fast = on arrival, batch = at window close). The per-event pipeline — Graphiti episode write (in-memory, FalkorDB-backed), context computation, envelope emission — is described in *Context Engine — internal architecture* below.
+**Processing note.** Both lanes flow through the same indexing path inside the Context Engine; only the *moment of publish* differs (fast = on arrival, batch = at window close). The per-event pipeline — bitemporal graph write + index update (in-memory), context computation, envelope emission — is described in *Context Engine — internal architecture* below.
 
 ## Context Engine — internal architecture
 
 The Context Engine is the box inside the dashed CMS boundary that turns a raw classified event into the `(event, context)` envelope that ends up on Kafka. Four concerns:
 
-**Memory layer — Graphiti, in-memory.** The engine uses [Graphiti](https://github.com/getzep/graphiti) — the open-source implementation of the Zep architecture (Rasmussen et al., *Zep: A Temporal Knowledge Graph Architecture for Agent Memory*, arXiv:2501.13956) — as its bitemporal temporal-knowledge-graph backing store. Each ingested event is written as a Graphiti *episode*; Graphiti automatically extracts entities and relations, attaches `valid_from` / `invalidated_at` edges, and supersedes contradicted facts. This gives the engine native bitemporal recall ("what did we believe about customer X at time t?") without bespoke versioning code. Graphiti is run on **FalkorDB** (a Redis-backed in-memory graph database that Graphiti supports as a backend) so all hot-path context queries hit RAM; durability comes from Redis's standard persistence (RDB snapshots + AOF). Cold-tier event storage (audit log, archived raw events past the working set) lives separately in Paimon / Iceberg, but the Graphiti graph itself stays exclusively in FalkorDB — there is no second graph backend in v1. *No hand-rolled "materialised view" cache layer is maintained on top* — Graphiti is the single source of truth for memory state, and FalkorDB is the in-memory execution engine. The detailed rationale and trade-off survey for Graphiti as the memory primitive is in `research/RQ5-shared-memory.md`.
+**Memory layer — a custom bitemporal knowledge graph + RAG, in-memory.** The engine's memory is a **purpose-built bitemporal temporal-knowledge-graph with vector RAG retrieval** — the thesis's own design, *not* an off-the-shelf framework. The thesis explicitly **rejects [Graphiti](https://github.com/getzep/graphiti)** (the open-source Zep implementation; Rasmussen et al., *Zep: A Temporal Knowledge Graph Architecture for Agent Memory*, arXiv:2501.13956) as the *implementation*: it does not expose enough control over ingestion and retrieval, and its LLM-based entity/relation extraction is not accurate enough for this workload. The thesis adopts the *approach* Graphiti popularised — bitemporal validity (`valid_from` / `invalidated_at` edges, supersession of contradicted facts) over a per-entity temporal graph, paired with a vector index for RAG — but with its **own entity/relation extraction and context-storing method** (a dedicated design point detailed later; extraction quality is itself a thesis concern, since it is where Graphiti falls short). Each ingested event updates the per-entity graph and the vector index; bitemporal edges give native "as-of" recall ("what did we believe about customer X at time t?") without bespoke versioning code at the call site. The store runs **in-memory** so hot-path context queries hit RAM (sub-millisecond on the working set); the exact backing storage engine is an open design point (one candidate is an in-memory graph database). Cold-tier event storage (audit log, archived raw events past the working set) lives separately in Paimon / Iceberg. The rationale and the design of the custom store are developed in `research/RQ5-shared-memory.md`.
 
-*Scope note on memory scaling.* FalkorDB is single-node (Redis-style) and therefore scales vertically only. The thesis accepts this ceiling for v1: the reference implementation runs a single FalkorDB instance, and benchmarks operate within its working-set capacity. Horizontal scaling — sharding the Graphiti graph across a Redis Cluster keyed by entity-id, or a comparable scheme — is explicitly **future work**. It is non-trivial because graph traversals don't shard cleanly across Redis hash slots, but the rest of the architecture is shard-friendly (events are already partitioned by entity key in Kafka), so the eventual sharding boundary aligns naturally with the existing partition key. Surveying that sharding design — and whether FalkorDB's roadmap, an alternative Graphiti backend, or a custom routing layer is the right primitive — is left for a follow-on study.
+*Scope note on memory scaling.* The in-memory store is single-node for v1 and therefore scales vertically only. The thesis accepts this ceiling: the reference implementation runs a single instance, and benchmarks operate within its working-set capacity. Horizontal scaling — sharding the graph by entity-id across a cluster, or a comparable scheme — is explicitly **future work**. It is non-trivial because graph traversals don't shard cleanly, but the rest of the architecture is shard-friendly (events are already partitioned by entity key in Kafka), so the eventual sharding boundary aligns naturally with the existing partition key. The exact backing storage engine and the sharding design are open design points for the custom store, left for the detailed RQ5 pass.
 
-**Context computation at publish time.** For every outgoing event, the engine queries Graphiti for the partition key's *current entity state*, the *last N events* on that key, and *relevant facts* pinned to the event time. The result is the `context` half of the envelope. Because Graphiti runs in-memory, these queries are sub-millisecond on the hot working set. This is the work the engine performs that lets agents stay stateless — the LLM never has to call back to a memory store mid-turn.
+**Context computation at publish time.** For every outgoing event, the engine queries the bitemporal graph + RAG store for the partition key's *current entity state*, the *last N events* on that key, and *relevant facts* pinned to the event time. The result is the `context` half of the envelope. Because the store runs in-memory, these queries are sub-millisecond on the hot working set. This is the work the engine performs that lets agents stay stateless — the LLM never has to call back to a memory store mid-turn.
 
 **Authorisation + filtering.** The engine is the single authorisation boundary. Tenant and session scoping are applied to the `context` object *before* publish, not on the agent side. An agent process that subscribes to a Kafka topic for `tenant:acme` cannot see events whose authorisation predicates exclude that tenant — the engine simply will not have produced them onto a topic the agent has access to.
 
@@ -57,7 +57,7 @@ The contract between the CMS and any agent is a single JSON envelope. Bumping it
     "data":    { /* event payload */ }
   },
   "context": {
-    "entity_state":   { /* current per-key snapshot from Graphiti */ },
+    "entity_state":   { /* current per-key snapshot from the context store */ },
     "recent_events":  [ /* last N events for the same partition key */ ],
     "relevant_facts": [ /* graph-queries pinned to event.time */ ]
   }
@@ -88,21 +88,21 @@ The replacement, inspired by how Cloudflare detects DDoS/anomalies at scale (per
 
 - **Stage 1 — Envelope.** Per-source adapter wraps each event in a CloudEvents v1.0 envelope and extracts features — Layer A (source-agnostic: inter-arrival gap, event-type mix, actor entropy, novelty, time-of-day) and Layer B (source-specific). Volume-decoupled *ratios/compositions* are preferred over raw counts (Cloudflare's "top-5 browser proportion" trick) so legitimate spikes don't false-positive. Essentially free (<1 ms).
 - **Stage 2 — Rules (hard floor).** A small JsonLogic/Drools set (JIRA P0, Slack @oncall, Stripe dispute ≥ $N, PagerDuty incident) forces FAST. Re-cast from "short-circuit" to the **mandatory floor** for the *urgent-but-not-anomalous* class a detector provably misses.
-- **Stage 3 — Per-entity anomaly scorer.** Features enter already transformed *relative to the entity's own baseline* (robust z `(x−median)/MAD`; compositional JS/KL divergence). Default scorer is **HBOS** (`HBOS(p)=Σ log 1/hist_i(p)` — linear-time, mixed-type, *no per-entity covariance matrix*, scales to millions of entities) plus univariate **robust-z / Page-Hinkley** for the point/local deviations HBOS misses; **PCA+Mahalanobis** reserved as a per-source-type upgrade where features are correlated. Baselines live in Flink keyed state next to Graphiti — 5-min buckets, ~4-week window, daily refresh.
-- **Stage 4 — Decision (OR-gate + guards).** `route_to_fast = Rules(e) OR (s_anom > θ_source)`, past an **absolute-volume floor** and **multi-window confirmation** (short 5-min AND long 1–4 h must both cross — Google SRE multi-burn-rate). A *point* anomaly sends that event; a *window* anomaly emits one deduped **situation envelope**, not every raw event. The continuous score also ranks salience inside the batch lane.
-- **Agent feedback — tunes sensitivity, not a classifier.** Agents still write `{event_id, verdict}` (`verdict ∈ {appropriate, too_urgent, too_slow, irrelevant}`) to `cms.feedback.v1`. The verdict is now a **slow control signal** that nudges the per-source threshold `θ_source` (Cloudflare-style sensitivity levels) — `too_urgent` raises θ, `too_slow` lowers it — not a label that trains a model. A per-source EWMA/PID controller suffices; no labels, no nightly retrain.
+- **Stage 3 — Per-entity anomaly scorer (one model: HBOS).** Each feature enters already transformed *relative to the entity's own baseline* (robust z `(x−median)/MAD`; compositional JS/KL divergence) — robust-z is the per-entity **normalizer**, not a second detector. The single scorer is **HBOS** (`HBOS(p)=Σ log 1/hist_i(p)` — linear-time, mixed-type, *no per-entity covariance matrix*, scales to millions of entities); a per-entity point deviation lands in a sparse histogram bin, so HBOS catches it natively. **PCA+Mahalanobis** and **Page-Hinkley** are deferred future upgrades, not v1. Baselines are **plain Flink keyed state — no context store** (the routing decision never touches the memory graph) — 5-min buckets, ~4-week window, daily refresh.
+- **Stage 4 — Decision (OR-gate + guards).** `route_to_fast = Rules(e) OR (s_anom > θ_source)`, past an **absolute-volume floor** and **multi-window confirmation** (short 5-min AND long 1–4 h must both cross — Google SRE multi-burn-rate). `θ_source` is a **static per-source sensitivity** (operator-set, Cloudflare-style) or a self-calibrating score quantile — **no online feedback loop**. A *point* anomaly sends that event; a *window* anomaly emits one deduped **situation envelope**, not every raw event. The continuous score also ranks salience inside the batch lane.
+- **No online feedback loop.** Cloudflare has no closed loop telling it a detection was wrong; nor do we. The threshold is a setting, not a learned quantity, so the `cms.feedback.v1` *control* path, its controller, and the per-agent instrumentation are all **removed** — the expensive, slow part of the earlier draft. Agents may still emit `{event_id, verdict}` (`{appropriate, too_urgent, too_slow, irrelevant}`) but **only for offline evaluation** of routing quality, never on the hot path.
 
 **Runtime behaviour:**
 
-| Event | Per-entity signal | Guard / rule | Action | Agent verdict | θ effect |
-|---|---|---|---|---|---|
-| Stripe dispute $50K on `customer:42` | order-value z ≫ customer's normal | past floor | **fast** (point anomaly) | `appropriate` | — |
-| Slack @oncall in `#incidents` | — | rule match | **fast** (rule floor) | — | scorer never consulted |
-| JIRA P0 on a daily-P0 service | not anomalous (expected) | rule match | **fast** (rule floor) | `appropriate` | detector alone would miss it |
-| `#random` chit-chat on `channel:random` | within baseline mix | — | **batch** | `appropriate` | — |
-| Error burst on `service:checkout` | event-type mix shift, both windows cross | past floor + multi-window | **fast** (one situation envelope) | `appropriate` | — |
-| Verbose log blip on `service:logs` | short window crosses, long doesn't | fails multi-window | **batch** | — | would-be `too_urgent` averted |
-| New `channel:launch` first message | novelty high, abs volume tiny | fails absolute floor | **batch** | — | unchanged |
+| Event | Per-entity signal | Guard / rule | Action | Why |
+|---|---|---|---|---|
+| Stripe dispute $50K on `customer:42` | order-value z ≫ customer's normal | past floor | **fast** (point anomaly) | deviant for this entity |
+| Slack @oncall in `#incidents` | — | rule match | **fast** (rule floor) | scorer never consulted |
+| JIRA P0 on a daily-P0 service | not anomalous (expected) | rule match | **fast** (rule floor) | detector alone would miss it |
+| `#random` chit-chat on `channel:random` | within baseline mix | — | **batch** | normal for this channel |
+| Error burst on `service:checkout` | event-type mix shift, both windows cross | past floor + multi-window | **fast** (one situation envelope) | confirmed anomalous burst |
+| Verbose log blip on `service:logs` | short window crosses, long doesn't | fails multi-window | **batch** | transient blip suppressed |
+| New `channel:launch` first message | novelty high, abs volume tiny | fails absolute floor | **batch** | trivial novelty suppressed |
 
 ## RQ4 — Delivery surface for stateless agents
 
@@ -114,7 +114,7 @@ Given the architectural commitments above (CMS owns context; agents are stateles
 
 The Context Engine produces `(event, context)` envelopes onto Kafka topics partitioned by entity key. Concrete conventions:
 
-- **Topics — split by lane.** `cms.events.fast.v1` (24 h retention, urgent events) and `cms.events.batch.v1` (7 d retention, windowed Context Units). Agent → engine feedback flows on `cms.feedback.v1`, where agents write `routing_feedback` verdicts that tune the RQ2 per-source anomaly sensitivity (`θ_source`).
+- **Topics — split by lane.** `cms.events.fast.v1` (24 h retention, urgent events) and `cms.events.batch.v1` (7 d retention, windowed Context Units). Agent → engine feedback optionally flows on `cms.feedback.v1`, where agents write `routing_feedback` verdicts collected for **offline evaluation** of routing quality — not an online control loop (the RQ2 threshold is a static setting).
 - **Partition key.** The CloudEvent `subject` field (`customer:42`, `order:9931`, `tenant:acme`). Kafka hashes the key to a single partition, so per-entity ordering is preserved across the consumer group. Cross-entity ordering is *not* preserved — agents only ever care about per-entity timelines.
 - **Partition count.** 50 for fast, 30 for batch. Sized for peak parallelism; over-provisioned because partition count is hard to change live.
 - **Consumer groups — one per agent role.** `cms.agents.triage`, `cms.agents.compliance`, `cms.agents.analytics`. Multiple roles on the same topic give independent fan-out with separate offset cursors. Within a role, replicas share partitions via the cooperative-sticky assignor (Kafka ≥ 2.4) to avoid stop-the-world rebalances.
@@ -122,31 +122,6 @@ The Context Engine produces `(event, context)` envelopes onto Kafka topics parti
 - **DLQ.** `<group>.dlq` per role for envelopes that fail N retries.
 
 Developers consume from these topics with whatever runtime fits the workload — a long-lived async consumer process, a Lambda-style ephemeral spawn (one invocation per event), Knative, Modal, anything that speaks Kafka. The CMS does not dictate.
-
-### Alternative considered — MCP Streaming Resources push
-
-An earlier draft of this proposal centred a content-bearing extension of MCP's `resources/subscribe` + `notifications/resources/updated` over Streamable HTTP, with `flow/*` back-pressure and `Last-Event-ID` resumability. The protocol is a clean fit for LLM-tooling-native agents and could be submitted as an MCP SEP. It is **rejected as the primary surface** for three reasons:
-
-- **Scalability.** Long-lived SSE / Streamable-HTTP connections impose per-connection memory and event-loop cost that scales worse than Kafka consumer-group fan-out for the subscriber counts a CMS will see. `research/push-protocol/report.md:318` flagged this as an explicit open problem; `research/push-protocol/04-push-delivery-semantics.md` enumerates the production patterns — Kafka groups, MQTT 5 `$share/`, AMQP shared subscriptions — that exist precisely to side-step single-connection-per-subscriber.
-- **Generalizability.** Forcing every adopter onto an MCP client narrows the runtime universe; Kafka is everywhere.
-- **Failure-mode complexity.** Replay via `Last-Event-ID` is a bespoke server-state contract; Kafka offsets are a well-understood broker-state contract.
-
-Future work *can* add an MCP-push façade *on top of* the Kafka spine — a server that consumes from `cms.events.*` and re-emits as `notifications/resources/updated` — as a convenience surface for agents already in the MCP ecosystem. It would not be on the critical path.
-
-### Alternative considered — MCP pull / polling (RTCE baseline)
-
-The agent calls `resources/read` against a CMS-side MCP server on a schedule. This is the public state-of-the-art today — Confluent RTCE's only agent interface (`research/confluent-rtce-deep-dive.md`). Rejected because polling either wastes calls during quiescence or lags the fast-path SLA on bursty traffic. The whole point of RQ4 is to close the push gap RTCE leaves open; a polling baseline would re-open it.
-
-### Other alternatives surveyed and discarded
-
-Briefly, with citations into the research notes:
-
-- **NATS JetStream durable consumers** — viable, but doesn't beat Kafka on the dimensions that matter here (`research/push-protocol/04-push-delivery-semantics.md:144–154`). One broker is enough.
-- **MQTT 5 shared subscriptions** — competing-consumer pattern at scale, but the IoT-protocol baggage (QoS state machines, session expiry) buys nothing for this workload (`04-push-delivery-semantics.md:124–134`).
-- **AMQP 1.0** — most complete reliability + native priority, but operational complexity and tooling mass are inferior to Kafka in the data-engineering ecosystem (`04-push-delivery-semantics.md:135–142`).
-- **Raw WebSocket / gRPC server-streaming** — isomorphic to MCP Streaming at the transport layer; same per-connection cost story (`04-push-delivery-semantics.md:80–87, 102–109`).
-- **A2A push, OpenAI Realtime, AGNTCY SLIM, Temporal Signals** — wrong direction or wrong shape for upstream→agent delivery (`research/push-protocol/02-a2a-and-agent-push-landscape.md`).
-- **Webhook → queue → worker** — degenerate ephemeral-Kafka with strictly worse semantics (no replay, retry-only) (`02-a2a-and-agent-push-landscape.md:232–264`).
 
 **References:**
 
@@ -175,7 +150,7 @@ async def main():
         # ec.event   -> typed CloudEvent
         # ec.context -> { entity_state, recent_events, relevant_facts }
         result = await my_llm_call(ec.event, ec.context)
-        await ec.feedback("appropriate")    # tunes the RQ2 anomaly sensitivity (θ_source)
+        await ec.feedback("appropriate")    # optional: offline routing-quality eval, not a control loop
 
 asyncio.run(main())
 ```
@@ -208,7 +183,7 @@ async def main():
             "Decide and act."
         )
         async for msg in query(prompt=prompt, options=options):
-            # stream Claude's responses — log, post to Slack, write back to Graphiti, etc.
+            # stream Claude's responses — log, post to Slack, write back to the context store, etc.
             pass
 
         await ec.feedback("appropriate")
@@ -216,7 +191,7 @@ async def main():
 asyncio.run(main())
 ```
 
-The agent stays stateless: every loop iteration is a fresh `query()` with the complete `(event, context)` payload as the only input. There is no agent-side memory, no cross-event continuation. Memory lives in Graphiti, and Graphiti is queried *by the Context Engine on the producer side*, not by the agent.
+The agent stays stateless: every loop iteration is a fresh `query()` with the complete `(event, context)` payload as the only input. There is no agent-side memory, no cross-event continuation. Memory lives in the Context Engine's bitemporal graph + RAG store, queried *by the engine on the producer side*, not by the agent.
 
 ### What the SDK is not
 
@@ -246,14 +221,14 @@ The Context Engine is evaluated on **ProAgentBench** — Tang et al., *ProAgentB
 2. **L2 — online routing under drift + system load.** Replay the stream *prequentially*; measure prequential AUC, cumulative regret vs. oracle routing, doubly-robust off-policy estimates, calibration (ECE/Brier), and drift detection-delay/recovery — alongside system metrics (p99/p99.9 event-time latency-to-agent, sustainable throughput, consumer/watermark lag, recovery time).
 3. **L3 — head-to-head delivery benchmark.** Same workload replayed into three backends — RTCE (pull-only over MCP), Confluent Streaming Agents (in-pipeline push, proprietary), our Context Engine (Kafka-direct envelopes) — measuring latency-to-agent (p50–p99.9, coordinated-omission-corrected), missed events, and counterfactually-defined token waste from `too_urgent` misrouting. Poll interval is swept; report the latency/cost/staleness Pareto.
 4. **Burstiness ablation.** Flatten the distribution to `B ≈ 0` (same event set) and re-run; quantify how much of the engine's advantage is justified only under real burstiness (`B = 0.787`).
-5. **Lc — context-retrieval quality.** The Context Engine's core job — assembling the right `(event, context)` — is scored *process-oriented*, grounded in **ContextBench** (arXiv:2602.05892): **context recall / precision / F1** and *assembly drop* of the served envelope against a per-event gold context (the Graphiti facts truly required to act), with the gold-context annotate→verify→minimise protocol retargeted to the event-stream domain. Composed with LongMemEval/LoCoMo retrieval probes.
+5. **Lc — context-retrieval quality.** The Context Engine's core job — assembling the right `(event, context)` — is scored *process-oriented*, grounded in **ContextBench** (arXiv:2602.05892): **context recall / precision / F1** and *assembly drop* of the served envelope against a per-event gold context (the context-store facts/edges truly required to act), with the gold-context annotate→verify→minimise protocol retargeted to the event-stream domain. Composed with LongMemEval/LoCoMo retrieval probes.
 6. **Burst & scalability of RQ2 + RQ4.** Generate a replayable stream at a target burstiness (Pareto ON/OFF superposition, finite-size-corrected `A_n`; Fano/Hurst cross-checks) and measure scalability the **Theodolite** way — resource *demand to sustain a load intensity*, swept over events/s × entity cardinality × partitions — proving per-entity state shards on the partition key. The headline burst result: FAST-lane urgent-event **p99.9 SLO attainment vs. offered load**, two-lane minus single-lane gap plotted against `B`, with the *self-DoS* risk (burst-is-the-anomaly) measured and the routing guards shown to act as load shedding. (Full methodology, metrics, and experiment matrix E9–E11 in `research/evaluation-methodology.md` §8.)
 
 ## Deliverables
 
 1. **Thesis report** (this document's parent) synthesising RQ1–RQ5.
 2. **`(event, context)` Kafka-delivery contract** — JSON Schema for the envelope plus per-topic conventions (naming, partitioning, consumer-group rules, idempotency, DLQ). The architectural specification an open-source CMS implementation must conform to. Replaces the earlier MCP Streaming Resources profile draft.
-3. **Reference Context Engine implementation** — open-source, backed by a free-tier streaming stack (Redpanda + Flink + Paimon) and Graphiti for the memory layer, producing `(event, context)` envelopes onto Kafka topics.
+3. **Reference Context Engine implementation** — open-source, backed by a free-tier streaming stack (Redpanda + Flink + Paimon) and a custom bitemporal graph + RAG store for the memory layer, producing `(event, context)` envelopes onto Kafka topics.
 4. **Python SDK for agent authors** — thin Kafka consumer + envelope decoder + `routing_feedback` helper. Lets developers write a stateless agent against the contract in a few lines; raw Kafka clients in any language remain a first-class option.
 5. **Empirical evaluation on ProAgentBench** — Tang et al., *ProAgentBench: Evaluating LLM Agents for Proactive Assistance with Real-World Data*, arXiv:2602.04482 (Feb 2026). <https://arxiv.org/abs/2602.04482>
    - 28,000+ events from 500+ hours of real user sessions with preserved bursty interaction patterns (burstiness `B = 0.787`), not LLM-synthesised.

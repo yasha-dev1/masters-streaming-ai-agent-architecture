@@ -16,7 +16,7 @@
 
   <!-- Title -->
   <text x="600" y="32" text-anchor="middle" font-size="20" font-weight="600" fill="#0f172a">Proposed Context Management System — Architecture</text>
-  <text x="600" y="52" text-anchor="middle" font-size="12" fill="#64748b">Open-source alternative to RTCE — Kafka topics carry (event, context) envelopes to stateless agents; Graphiti is the memory layer</text>
+  <text x="600" y="52" text-anchor="middle" font-size="12" fill="#64748b">Open-source alternative to RTCE — Kafka topics carry (event, context) envelopes to stateless agents; a custom bitemporal graph + RAG store is the memory layer</text>
 
   <!-- CMS dashed boundary -->
   <rect x="200" y="80" width="740" height="360" rx="14" fill="#fafbff" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="6 4"/>
@@ -75,13 +75,13 @@
     <text x="80" y="68" text-anchor="middle" font-size="11" fill="#9a3412">windowed · summarised</text>
   </g>
 
-  <!-- Context Engine / Materialised views + Graphiti memory -->
+  <!-- Context Engine / Materialised views + bitemporal KG + RAG memory -->
   <g transform="translate(615, 195)">
     <rect width="200" height="140" rx="10" fill="#faf5ff" stroke="#a855f7" stroke-width="1.5"/>
     <text x="100" y="30" text-anchor="middle" font-size="13" font-weight="600" fill="#6b21a8">Context Engine</text>
     <line x1="20" y1="42" x2="180" y2="42" stroke="#e9d5ff" stroke-width="1"/>
-    <text x="100" y="62" text-anchor="middle" font-size="11" fill="#475569">Graphiti — temporal KG memory</text>
-    <text x="100" y="80" text-anchor="middle" font-size="11" fill="#475569">FalkorDB-backed (in-memory)</text>
+    <text x="100" y="62" text-anchor="middle" font-size="11" fill="#475569">Bitemporal KG + RAG (custom)</text>
+    <text x="100" y="80" text-anchor="middle" font-size="11" fill="#475569">in-memory · store TBD</text>
     <text x="100" y="98" text-anchor="middle" font-size="11" fill="#475569">compute (event, context)</text>
     <text x="100" y="116" text-anchor="middle" font-size="11" fill="#475569">authorise · filter · route</text>
   </g>
@@ -163,8 +163,8 @@
       <text x="16" y="86">The split exists only because some events must reach agents in milliseconds (p0 Slack DM, Stripe dispute, oncall ping) while others</text>
       <text x="16" y="102">are more useful after windowed aggregation into Context Units. Same log, two delivery latencies.</text>
 
-      <text x="16" y="130" font-weight="600" fill="#6366f1">② Kafka spine, end-to-end. Graphiti is in-memory.</text>
-      <text x="16" y="148">Inside the dashed boundary: Kafka/Redpanda topics, Flink jobs, Graphiti on FalkorDB for in-memory temporal-KG memory, Paimon/Iceberg for cold storage.</text>
+      <text x="16" y="130" font-weight="600" fill="#6366f1">② Kafka spine, end-to-end. The memory store is in-memory.</text>
+      <text x="16" y="148">Inside the dashed boundary: Kafka/Redpanda topics, Flink jobs, a custom in-memory bitemporal KG + RAG for memory, Paimon/Iceberg for cold storage.</text>
       <text x="16" y="164">Agents see only (event, context) envelopes on cms.events.fast.v1 / cms.events.batch.v1 — never the engine's internals.</text>
 
       <text x="16" y="192" font-weight="600" fill="#334155">③ Agents are routed by partition key.</text>

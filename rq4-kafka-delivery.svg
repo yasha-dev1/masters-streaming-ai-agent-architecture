@@ -19,7 +19,7 @@
 
   <!-- Title -->
   <text x="600" y="32" text-anchor="middle" font-size="20" font-weight="600" fill="#0f172a">RQ4 — (event, context) delivery over Kafka</text>
-  <text x="600" y="52" text-anchor="middle" font-size="12" fill="#64748b">Two event lanes partitioned by entity key · one consumer group per agent role · feedback tunes the RQ2 routing sensitivity</text>
+  <text x="600" y="52" text-anchor="middle" font-size="12" fill="#64748b">Two event lanes partitioned by entity key · one consumer group per agent role · feedback collected for offline eval only</text>
 
   <!-- Producer: Context Engine -->
   <g transform="translate(40, 110)">
@@ -28,7 +28,7 @@
     <text x="90" y="44" text-anchor="middle" font-size="11" fill="#6b21a8" font-style="italic">producer</text>
     <line x1="20" y1="58" x2="160" y2="58" stroke="#e9d5ff"/>
     <text x="90" y="80" text-anchor="middle" font-size="11" fill="#475569">enriches event from</text>
-    <text x="90" y="96" text-anchor="middle" font-size="11" fill="#475569">Graphiti, computes</text>
+    <text x="90" y="96" text-anchor="middle" font-size="11" fill="#475569">context store, computes</text>
     <text x="90" y="112" text-anchor="middle" font-size="11" fill="#475569">context, emits envelope</text>
     <line x1="20" y1="128" x2="160" y2="128" stroke="#e9d5ff"/>
     <text x="90" y="150" text-anchor="middle" font-size="10" fill="#64748b">partition key =</text>
@@ -94,7 +94,7 @@
   <g transform="translate(310, 330)">
     <rect width="560" height="84" rx="10" fill="#f0f9ff" stroke="#0ea5e9" stroke-width="1.5"/>
     <text x="20" y="24" font-size="13" font-weight="600" fill="#0369a1">cms.feedback.v1</text>
-    <text x="540" y="24" text-anchor="end" font-size="10" fill="#0369a1" font-style="italic">10 partitions · routing_feedback verdicts → RQ2 θ controller</text>
+    <text x="540" y="24" text-anchor="end" font-size="10" fill="#0369a1" font-style="italic">10 partitions · routing_feedback verdicts → offline eval</text>
     <g transform="translate(20, 38)">
       <rect width="520" height="34" rx="4" fill="#ffffff" stroke="#bae6fd"/>
       <g font-size="9" font-family="monospace" fill="#0369a1" text-anchor="middle">
@@ -181,7 +181,7 @@
   <path d="M 1055 425 C 1055 510, 880 510, 880 414" stroke="#0ea5e9" stroke-width="1.5" stroke-dasharray="4 3" fill="none" marker-end="url(#arrow-feedback)"/>
   <text x="965" y="460" text-anchor="middle" font-size="10" fill="#0369a1" font-style="italic">routing_feedback verdicts</text>
 
-  <!-- Controller reads feedback (arrow only; topic header already labels it) -->
+  <!-- Offline eval reads feedback (arrow only; topic header already labels it) -->
   <path d="M 310 372 Q 250 372 230 290" stroke="#0ea5e9" stroke-width="1.2" stroke-dasharray="4 3" fill="none" marker-end="url(#arrow-feedback)"/>
 
   <!-- Design notes -->
@@ -195,8 +195,8 @@
       <text x="16" y="100"><tspan font-weight="600" fill="#0369a1">③ Cooperative-sticky rebalances.</tspan> Replicas join or leave a group without stop-the-world rebalances (Kafka ≥ 2.4); per-key ordering survives membership changes.</text>
       <text x="16" y="124"><tspan font-weight="600" fill="#6b21a8">④ Idempotency contract.</tspan> The CloudEvent <tspan font-family="monospace">(source, id)</tspan> pair is the dedupe key. The CMS publishes at-least-once; the agent SDK dedupes before invoking the LLM.</text>
       <text x="16" y="148"><tspan font-weight="600" fill="#475569">⑤ Per-role DLQ.</tspan> Envelopes that fail N retries are written to <tspan font-family="monospace">&lt;group&gt;.dlq</tspan> for human triage. Replays are an explicit operator decision, not automatic.</text>
-      <text x="16" y="172"><tspan font-weight="600" fill="#0f172a">⑥ Stateless agents.</tspan> The (event, context) envelope is the agent's entire input. Memory lives in the Context Engine (Graphiti); agents do not hold state across events and do not call back for additional context.</text>
-      <text x="16" y="196"><tspan font-weight="600" fill="#0369a1">⑦ Feedback tunes routing sensitivity.</tspan> Agents write a verdict (<tspan font-family="monospace">appropriate / too_urgent / too_slow / irrelevant</tspan>) to <tspan font-family="monospace">cms.feedback.v1</tspan>; the RQ2 controller consumes it asynchronously to tune the per-source anomaly threshold θ_source. No second connection back to the engine.</text>
+      <text x="16" y="172"><tspan font-weight="600" fill="#0f172a">⑥ Stateless agents.</tspan> The (event, context) envelope is the agent's entire input. Memory lives in the Context Engine (bitemporal graph + RAG store); agents do not hold state across events and do not call back for additional context.</text>
+      <text x="16" y="196"><tspan font-weight="600" fill="#0369a1">⑦ Feedback — offline evaluation only.</tspan> Agents may write a verdict (<tspan font-family="monospace">appropriate / too_urgent / too_slow / irrelevant</tspan>) to <tspan font-family="monospace">cms.feedback.v1</tspan> to <tspan font-style="italic">measure</tspan> routing quality offline. It is NOT an online control loop — the RQ2 threshold is a static setting. No second connection back to the engine.</text>
       <text x="16" y="222"><tspan font-weight="600" fill="#334155">⑧ Runtime is the developer's choice.</tspan> Replicas can be long-lived async consumers, Lambda-style ephemeral spawns (one invocation per event via Kafka source mapping), Knative, Modal, etc. — the CMS does not dictate.</text>
     </g>
   </g>

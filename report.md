@@ -13,10 +13,10 @@ This report synthesises the answers to the five research questions (RQ1–RQ5) r
 **The five recommendations, integrated.**
 
 1. **Architecture (RQ1).** A streaming-first Kappa+ topology: Kafka hot log + Iceberg/Delta warehouse as replay source, Flink (or Spark Structured Streaming) as the single compute engine, bifurcated sinks for low-latency push and windowed-aggregation outputs.
-2. **Event classification (RQ2).** *[Superseded — see `research/RQ2-anomaly-detection-reframe.md`.]* Per-entity, label-free streaming **anomaly detection** (Cloudflare-inspired): CloudEvents envelope + per-source adapters → declarative rules as a hard floor → per-entity HBOS + robust-z deviation scoring keyed by `subject` → OR-gate with absolute-floor + multi-window guards. Downstream agent verdicts tune the per-source sensitivity threshold `θ_source`, not a supervised classifier.
+2. **Event classification (RQ2).** *[Superseded — see `research/RQ2-anomaly-detection-reframe.md`.]* Per-entity, label-free streaming **anomaly detection** (Cloudflare-inspired): CloudEvents envelope + per-source adapters → declarative rules as a hard floor → a **single HBOS model** over per-entity-normalized features (plain Flink keyed state, **no Graphiti** on the routing path) → OR-gate with absolute-floor + multi-window guards. A **static per-source sensitivity threshold** (or self-calibrating score quantile) replaces both the classifier and any online feedback loop; verdicts, if collected, are for offline evaluation only.
 3. **Batch aggregation (RQ3).** Events aggregated into *sessionized, entity-centric Context Units* (not time-bucket dumps) using hierarchical map-reduce summarisation, indexed in a vector + graph + keyword store. An explicit utility function `U(C) = E[Performance|C] − λ·tokens(C) − μ·staleness(C)` makes "optimality" testable.
 4. **Context distribution (RQ4).** Hybrid **notify-then-pull** protocol, modelled on MCP's resource-subscription primitive. The Context Engine is exposed as an MCP server; agents subscribe to typed predicates; the server pushes lightweight change signals and agents pull full payloads from resources/tools. Transactional outbox between write-side and notification-side is a correctness requirement, not optional.
-5. **Shared memory (RQ5).** Bitemporal append-only event log as source of truth; derived read-side projections combine a Graphiti-style temporal knowledge graph (with GraphRAG community summaries) and a vector index over chunk/entity/community embeddings. Collaborative-Memory-style two-tier partitioning (shared vs. per-agent private) with provenance on every fragment.
+5. **Shared memory (RQ5).** Bitemporal append-only event log as source of truth; derived read-side projections combine a **custom** bitemporal temporal knowledge graph (Graphiti-*inspired* but purpose-built — not Graphiti, for control over entity extraction) with GraphRAG-style community summaries and a vector index over chunk/entity/community embeddings. Collaborative-Memory-style two-tier partitioning (shared vs. per-agent private) with provenance on every fragment.
 
 **Cross-cutting themes.** The same primitives appear in all five answers: an event log as backbone, entity-centric grouping, bitemporal validity, LLM-as-oracle used offline rather than on the hot path, and MCP/pub-sub as the agent-facing protocol.
 
@@ -91,7 +91,7 @@ The rest of this report defends each component of this architecture against the 
 
 ### 3.2 RQ2 — Event Classification (Fast-path vs. Batch-path)
 
-> **⚠ Superseded (post-supervisor-feedback).** The four-stage *supervised cascade* recommended below is no longer the design. It is structurally ill-posed (no independent urgency labels exist) and does not scale (a global model bolted onto a partitioned stream). RQ2 is reframed around **per-entity, label-free anomaly detection** (Cloudflare-inspired): rules as a hard floor `OR` a per-entity HBOS/robust-z deviation score past adaptive guards, with agent verdicts tuning per-source sensitivity `θ_source`. The section below is retained as the documented exploration that led there; the current design is in `research/RQ2-anomaly-detection-reframe.md`.
+> **⚠ Superseded (post-supervisor-feedback).** The four-stage *supervised cascade* recommended below is no longer the design. It is structurally ill-posed (no independent urgency labels exist) and does not scale (a global model bolted onto a partitioned stream). RQ2 is reframed around **per-entity, label-free anomaly detection** (Cloudflare-inspired): rules as a hard floor `OR` a single HBOS deviation score (over per-entity-normalized features, plain keyed state — no Graphiti) past adaptive guards, with a static per-source sensitivity threshold and **no online feedback loop**. The section below is retained as the documented exploration that led there; the current design is in `research/RQ2-anomaly-detection-reframe.md`.
 
 **Paths considered** (detailed in `research/RQ2-event-classification.md`, 52 references):
 
@@ -154,7 +154,7 @@ ingest
 
 **Per-source specialisations.**
 - **Slack**: session window on `channel_id + thread_ts`, 30-min gap, preserve speaker attribution (load-bearing for "who decided X?" queries).
-- **JIRA**: keyed-state with compaction triggers (status change, N new comments, T elapsed) rather than time windows; three-level hierarchical summary (comment-cluster → phase → ticket); Graphiti-style temporal edges for every state change.
+- **JIRA**: keyed-state with compaction triggers (status change, N new comments, T elapsed) rather than time windows; three-level hierarchical summary (comment-cluster → phase → ticket); bitemporal temporal edges for every state change.
 - **E-commerce**: 30-min inactivity session by `user_id`/`session_cookie`; extractive-first templated summaries (cheaper and more reliable than free generation for well-understood funnel events); LLM summarisation only for support-relevant sessions.
 
 **Operational definition of "optimal".** The thesis should adopt the utility function:
@@ -222,7 +222,7 @@ Six measurable sub-criteria make this testable: token efficiency, atomic-fact re
 **Source of truth.** An append-only event log (Kafka topic or Iceberg table — same backbone as RQ1) carrying every batch-path emission with `event_time` (business-event time) + `ingest_time` (system time). **Bitemporal by construction** [Fowler] because the Processing Engine already produces both timestamps.
 
 **Read-side projections.**
-- A **Graphiti-style temporal knowledge graph** with entities, relations, and `(t_valid_from, t_valid_to, t_ingested)` on every edge. Supersession (new fact invalidating old) sets `t_valid_to`; the old edge remains queryable — answering "what did we believe on day X?".
+- A **custom bitemporal temporal knowledge graph** (Graphiti-inspired but built in-house for control over entity extraction — *not* Graphiti) with entities, relations, and `(t_valid_from, t_valid_to, t_ingested)` on every edge. Supersession (new fact invalidating old) sets `t_valid_to`; the old edge remains queryable — answering "what did we believe on day X?".
 - GraphRAG-style **community summaries** pre-generated for coarse queries.
 - A **vector index** over chunk / entity / community embeddings (pgvector for prototype; Qdrant/Milvus for scale).
 - A **relational sidecar** (Postgres) for well-known structured facts (user profiles, ticket metadata), kept in sync *via the log*, not by direct writes.
@@ -237,7 +237,7 @@ Six measurable sub-criteria make this testable: token efficiency, atomic-fact re
 
 **Forgetting.** The log is never forgotten (cheap storage; auditability non-negotiable). Projections *can* forget via periodic reflection-style compaction, gated by regression tests on a held-out benchmark. Low-salience facts decay in retrieval *score* (recency × importance × relevance weighting from Generative Agents) rather than being deleted.
 
-**Why this specific combination.** Zep/Graphiti produced the strongest empirical memory results in 2025 (18.5% accuracy gain on LongMemEval, 90% latency reduction, ~115K tokens → ~1.6K). GraphRAG added community summaries for coarse queries. Collaborative Memory is the only published shared-vs-private design for multi-agent settings. Event sourcing + bitemporality are mature patterns [Fowler] with direct mapping to "batch path emits events, agents see projections" topology.
+**Why this specific combination.** Zep/Graphiti demonstrated that the bitemporal-graph *approach* produces the strongest empirical memory results in 2025 (18.5% accuracy gain on LongMemEval, 90% latency reduction, ~115K tokens → ~1.6K) — so the thesis adopts that approach but implements its **own** store; Graphiti is rejected *as the implementation* for insufficient control and weak LLM entity extraction. GraphRAG added community summaries for coarse queries. Collaborative Memory is the only published shared-vs-private design for multi-agent settings. Event sourcing + bitemporality are mature patterns [Fowler] with direct mapping to "batch path emits events, agents see projections" topology.
 
 **The gap the survey surfaced.** No surveyed system formally specifies the consistency model offered to concurrent agent readers/writers. Graphiti uses "last-write-wins with explicit supersession"; Collaborative Memory uses permission graphs; most systems just don't say. This is a thesis contribution opportunity (see §6).
 
