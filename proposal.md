@@ -18,7 +18,8 @@ Two stances frame the rest of the proposal.
 
 **The CMS builds context from the stream with stateless agents.**
 
-- Internal **builder agents** subscribe to the two event topics (fast + batch). Before processing each event, the latest context filesystem is **mounted** to the agent; it processes the event and **updates** the filesystem.
+- Internal **builder agents** subscribe to the two event topics (fast + batch). The filesystem is **not mounted** — the agent reaches it over an **internal filesystem MCP server** that exposes file tools *and* OS-level bash (`ls`, `cd`, `grep`, `find`, `cat`, …), so it can navigate, search, and grep the store like a normal shell while it processes the event.
+- **Versioned, fork-per-session (git-style).** At session start the MCP server presents the **latest committed version** of the filesystem on a **per-agent fork**; the agent does its work and at session end its changes are **committed** as a new version. If a concurrent session committed conflicting changes meanwhile, the **commit fails** and the agent must **resolve the conflict** before its work lands.
 - Two update modes (set by event classification):
   - **Fast lane** — one event, processed on arrival; context updated immediately.
   - **Batch lane** — the window's accumulated events, processed at window close.
@@ -51,15 +52,16 @@ The engine ingests the raw event stream, builds the org's context from it, and s
 
 **Context building (internal agents).**
 
-- Stateless **builder agents** subscribe to both lanes. Before processing each event, the latest context filesystem is **mounted** to the agent; it processes the event and **updates** the filesystem.
+- Stateless **builder agents** subscribe to both lanes. The filesystem is **not mounted**: the agent accesses it over an **internal filesystem MCP server** that serves file operations plus OS-level bash (`ls`, `grep`, `find`, `cat`, …) for navigation and search.
+- **Versioning (concurrency control).** Each session starts from the latest committed filesystem version on its **own fork**; at session end the agent's changes are **committed** as a new version. Commits are optimistic — a conflicting commit **fails** and that agent must **resolve the conflict** and re-commit. This fork-per-session + optimistic-commit scheme *is* the concurrent-write model (it replaces the OS-mount approach).
 - Fast lane → one event on arrival; batch lane → the window's accumulated events at window close. No in-RAM state between events.
 
 **Internal store (never exposed).**
 
-- An **agentic filesystem** in SQLite (the AgentFS model — one DB per organization) holds the living, synthesized context as files.
+- A **version-controlled agentic filesystem** (the AgentFS model — one repo per organization, SQLite-backed) holds the living, synthesized context as files. Builder agents reach it only through the **internal filesystem MCP server** (file tools + bash); writes land as **commits**, one **fork per agent session** (see *Context building*).
 - A **raw-conversation log**, also SQLite, persists each agent conversation **URL-addressable** — an agent can fetch its prior context from a URL.
 - Cold/raw event archive (audit, replay) lives separately in Paimon / Iceberg.
-- *Scope (v1):* single-node per organization; concurrent-write handling and sharding-by-org are future work (see `research/RQ5-shared-memory.md`).
+- *Scope (v1):* single-node per organization; concurrent writes are handled by the **fork-per-session + optimistic-commit** model above (conflicting commits fail → the agent resolves and re-commits), while sharding-by-org remains future work (see `research/RQ5-shared-memory.md`).
 
 **Context I/O — the MCP surface (the only external surface).**
 
@@ -162,7 +164,7 @@ The CMS is evaluated through several **independent studies**, each isolating one
 - **Why a coding benchmark.** A real software task carries an *objective, automatic* success signal — the repository's own tests pass or fail — so task success isolates whether the FS surfaced the context the agent needed, with no LLM-judge noise.
 
 **Dataset — SWE-bench-Live** (Microsoft, NeurIPS 2025; MIT-licensed code *and* data):
-
+create 
 - Contamination-resistant: only GitHub issues filed after Jan 2024, refreshed monthly — fits a streaming thesis and avoids training-data leakage.
 - Each instance ships `repo`, `base_commit`, `environment_setup_commit`, `problem_statement`, gold `patch`, `test_patch`, `FAIL_TO_PASS` / `PASS_TO_PASS`, `created_at` — i.e. an objective grader plus a pre-built, REPOLAUNCH-validated Docker environment.
 - Pick the **top 1–10 repos by instance count**, so the validated test environments already exist; reported as a curated subset, *not* leaderboard-comparable to full SWE-bench-Live.
@@ -201,6 +203,25 @@ The CMS is evaluated through several **independent studies**, each isolating one
 - **Baselines.** ECOD / COPOD, Isolation Forest, Half-Space Trees, Robust Random Cut Forest, Page-Hinkley / ADWIN; LOF / k-NN as the local-anomaly reference.
 - **Metrics.** **VUS-PR** and **affiliation-F1** (range-aware, threshold-free), **NAB** latency-weighted score, recall@FPR ≤ 1%, detection delay. Naive point-adjusted F1 is avoided — Kim et al. (AAAI 2022) show a random scorer "wins" under it.
 - **Entity** = the CloudEvent `subject` (per-project, per-service, per-customer) — the detector is evaluated at the granularity it shards on.
+
+### Study 3 — Real-world use case: full JIRA + commits on a live project
+
+- **Question.** Studies 1–2 each isolate one claim on a clean benchmark. This study asks the *integration* question: on a **real project's own multi-source history** — issue tracker, commits, and review discussion for the same repo over the same window — does the CMS assemble cross-source context an agent could not get from any single feed? It exercises the engine's full potential rather than one isolated metric.
+- **Why a purpose-built corpus.** Studies 1–2 are **disjoint by construction**: SWE-bench-Live is Python / GitHub-Issues-only and post-Jan-2024; the Public Jira dataset is JVM / JIRA-only with a snapshot ending ~Jan 2022. No repository and no time window is shared, so neither benchmark can supply a single repo carrying *both* JIRA tickets and commits — hence a dedicated corpus.
+
+**Dataset — live Apache JIRA + Git, a handful of repos.** The Apache JIRA (`issues.apache.org`, public REST API) is still the primary tracker for **Spark, Flink, Kafka, Cassandra, Hadoop, Hive, Solr** and serves *fresh* tickets, so a 2024–2026 window preserves Study 1's contamination-resistance. Pick 2–3 repos; per repo, three streams over one timeline:
+
+- **JIRA tickets** + changelogs (priority, status transitions, comments) — pulled via REST.
+- **Commits + diffs** from the Git history.
+- **PR / review discussion** from GitHub.
+
+JIRA↔commit linkage is reconstructed from the key embedded in commit messages and PR titles (`[FLINK-37246]`, `SPARK-12345`) — a regex join, with link recall/noise reported.
+
+**Setup.** Replay all three streams, interleaved by timestamp, as CloudEvents into the CMS up to a chosen `base_commit`; the engine indexes them into the agentic FS exactly as in production. The triggering event is a JIRA ticket describing a defect whose fixing commit is known.
+
+**Scoring.** These are JVM repos, so SWE-bench-Live's prebuilt `FAIL_TO_PASS` grader does not apply; the primary signal is the **context metric Study 1 already defines** — context precision & recall of what `context_research` surfaces against the files the **fixing commit** touched, measurable without a test harness. Optionally, a small hand-built `FAIL_TO_PASS` set on 1–2 repos adds a test-pass headline.
+
+**Honesty notes.** Curated handful (illustrative, not leaderboard-comparable); JVM, so no off-the-shelf automatic test grader; ticket↔commit links reconstructed by key-regex (join precision/recall stated); the live-JIRA Apache projects are JVM — the Python ones (Airflow, Beam) have migrated off JIRA, so a Python + live-JIRA repo does not exist.
 
 ## Deliverables
 
