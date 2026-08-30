@@ -1,0 +1,441 @@
+<title>Context Engine Evaluation Protocol</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Fira+Code:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#F6F7F5; --paper-2:#ECEFEA; --ink:#1B1F1E; --ink-2:#4B5450; --ink-3:#7C8580; --rule:#D5DAD4;
+  --accent:#2B4C8C; --accent-soft:#DCE4F4; --accent-ink:#1F3A6E;
+  --truth:#0F7A5A; --truth-soft:#D8EFE6;
+  --fast:#B4731A; --fast-soft:#F7E9CF; --batch:#2B4C8C; --batch-soft:#DCE4F4;
+  --bad:#AE3B3B; --bad-soft:#F5DCDC; --warn:#A46A10; --warn-soft:#F6E8CC;
+  --code:#E8ECE7;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#151817; --paper-2:#1D2220; --ink:#E6EAE6; --ink-2:#B2BBB5; --ink-3:#7F8983; --rule:#2D3430;
+    --accent:#8FB0EE; --accent-soft:#1B2A45; --accent-ink:#B7CCF5;
+    --truth:#6FD1AC; --truth-soft:#123528;
+    --fast:#E2A64B; --fast-soft:#3B2C12; --batch:#8FB0EE; --batch-soft:#1B2A45;
+    --bad:#E58C8C; --bad-soft:#3D1E1E; --warn:#E0B25E; --warn-soft:#3A2C12;
+    --code:#222825;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#151817; --paper-2:#1D2220; --ink:#E6EAE6; --ink-2:#B2BBB5; --ink-3:#7F8983; --rule:#2D3430;
+  --accent:#8FB0EE; --accent-soft:#1B2A45; --accent-ink:#B7CCF5;
+  --truth:#6FD1AC; --truth-soft:#123528;
+  --fast:#E2A64B; --fast-soft:#3B2C12; --batch:#8FB0EE; --batch-soft:#1B2A45;
+  --bad:#E58C8C; --bad-soft:#3D1E1E; --warn:#E0B25E; --warn-soft:#3A2C12;
+  --code:#222825;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.58;margin:0}
+a{color:var(--accent)}
+.shell{display:grid;grid-template-columns:240px minmax(0,1fr);max-width:1280px;margin:0 auto}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:34px 18px 34px 26px;border-right:1px solid var(--rule);font-size:13.5px}
+nav.toc .brand{font-family:Spectral,Georgia,serif;font-weight:600;font-size:17px;margin-bottom:16px}
+nav.toc a{display:block;color:var(--ink-2);text-decoration:none;padding:5px 0 5px 10px;border-left:2px solid transparent;margin-left:-12px}
+nav.toc a:hover{color:var(--ink);border-left-color:var(--accent)}
+nav.toc .grp{margin-top:14px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+main{padding:40px 52px 100px 56px;min-width:0}
+.eyebrow{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+h1{font-family:Spectral,Georgia,serif;font-weight:500;font-size:42px;line-height:1.1;margin:8px 0 14px;text-wrap:balance;letter-spacing:-.01em}
+h2{font-family:Spectral,Georgia,serif;font-weight:500;font-size:29px;line-height:1.15;margin:58px 0 8px;text-wrap:balance}
+h2 .k{display:block;font-family:"Fira Code",monospace;font-size:12px;letter-spacing:.08em;color:var(--accent);margin-bottom:8px;text-transform:uppercase}
+h3{font-family:Spectral,Georgia,serif;font-weight:600;font-size:20px;margin:28px 0 8px;text-wrap:balance}
+h4{font-size:12.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);margin:20px 0 6px;font-weight:700}
+p,li{max-width:72ch}
+p{margin:0 0 12px}
+ul,ol{padding-left:22px;margin:0 0 14px}
+li{margin:0 0 7px}
+.lede{font-family:Spectral,Georgia,serif;font-size:21px;line-height:1.45;color:var(--ink-2);max-width:62ch}
+code,.mono{font-family:"Fira Code",ui-monospace,Menlo,monospace;font-size:.86em}
+code{background:var(--code);padding:1px 5px;border-radius:3px}
+pre{background:var(--code);padding:14px 16px;border-radius:6px;overflow-x:auto;font-size:12.6px;line-height:1.5}
+pre code{background:none;padding:0;font-size:inherit}
+.verdict{border-left:3px solid var(--accent);background:var(--accent-soft);padding:16px 20px;border-radius:0 6px 6px 0;margin:16px 0 22px;max-width:82ch}
+.verdict .lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);font-weight:700;margin-bottom:6px}
+.verdict p{font-family:Spectral,Georgia,serif;font-size:18px;line-height:1.45;margin:0;max-width:none}
+.truth{border-left:3px solid var(--truth);background:var(--truth-soft);padding:12px 18px;border-radius:0 6px 6px 0;margin:14px 0;max-width:82ch}
+.truth .lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--truth);font-weight:700;margin-bottom:4px}
+.truth p{margin:0;max-width:none}
+.note{border-left:3px solid var(--warn);background:var(--warn-soft);padding:12px 18px;border-radius:0 6px 6px 0;margin:16px 0;max-width:82ch}
+.note.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+.note p:last-child{margin:0}
+.tablewrap{overflow-x:auto;margin:14px 0 22px;border:1px solid var(--rule);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:700px}
+th,td{padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top;text-align:left}
+th{background:var(--paper-2);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);font-weight:700}
+tr:last-child td{border-bottom:none}
+td.c{text-align:center}td.n{font-variant-numeric:tabular-nums;text-align:right}
+.pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pill.fast{background:var(--fast-soft);color:var(--fast)}.pill.batch{background:var(--batch-soft);color:var(--batch)}
+.pill.truth{background:var(--truth-soft);color:var(--truth)}.pill.bad{background:var(--bad-soft);color:var(--bad)}.pill.warn{background:var(--warn-soft);color:var(--warn)}.pill.acc{background:var(--accent-soft);color:var(--accent-ink)}
+.exp{border:1px solid var(--rule);border-radius:8px;margin:22px 0;background:var(--paper-2);overflow:hidden}
+.exp header{padding:16px 20px;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:64px 1fr;gap:14px;align-items:start}
+.exp header .id{font-family:"Fira Code",monospace;font-size:22px;color:var(--accent);font-weight:500;line-height:1}
+.exp header h3{margin:0 0 4px}
+.exp header p{margin:0;color:var(--ink-2);max-width:none}
+.exp .body{padding:6px 20px 16px}
+.exp dl{display:grid;grid-template-columns:150px 1fr;gap:8px 16px;margin:10px 0 0;max-width:none}
+.exp dt{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:700;padding-top:3px}
+.exp dd{margin:0}
+.exp dd p,.exp dd li{max-width:none}
+.exp dd ul{margin:0}
+.matrix td.c{font-size:16px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:14px 0 20px}
+.card{border:1px solid var(--rule);border-radius:6px;padding:16px 18px;background:var(--paper-2)}
+.card h3{margin-top:0}
+.card p,.card li{max-width:none}
+details{border:1px solid var(--rule);border-radius:6px;margin:0 0 8px;background:var(--paper-2)}
+summary{cursor:pointer;padding:11px 16px;font-weight:700;list-style:none;display:flex;gap:10px;align-items:baseline}
+summary::-webkit-details-marker{display:none}
+summary .n{font-family:"Fira Code",monospace;font-size:12px;color:var(--accent);min-width:28px}
+summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:6px}
+details .a{padding:0 16px 14px 54px;color:var(--ink-2)}
+details .a p{max-width:none;margin:0 0 8px}
+.small{font-size:13.5px;color:var(--ink-2)}
+.refs{font-size:13.2px;line-height:1.45;color:var(--ink-2)}
+.refs ol{padding-left:30px;max-width:none}
+.refs li{max-width:none;margin:0 0 5px}
+.refs li:target{background:var(--accent-soft);color:var(--ink);border-radius:4px}
+.cite{font-family:"Fira Code",monospace;font-size:.72em;color:var(--accent);vertical-align:super;line-height:0;white-space:nowrap}
+.cite a{text-decoration:none}
+@media (max-width:920px){.shell{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule)}main{padding:28px 20px 72px}.two{grid-template-columns:1fr}.exp dl{grid-template-columns:1fr}h1{font-size:34px}}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+
+<div class="shell">
+<nav class="toc" aria-label="Sections">
+  <div class="brand">Evaluation Protocol</div>
+  <a href="#top">Principles</a>
+  <a href="#claims">Claims → experiments</a>
+  <div class="grp">Data</div>
+  <a href="#corpora">The two corpora</a>
+  <a href="#truth">Ground truth catalogue</a>
+  <div class="grp">Experiments</div>
+  <a href="#e1">E1 Routing</a>
+  <a href="#e2">E2 State fidelity</a>
+  <a href="#e3">E3 Store organisation</a>
+  <a href="#e4">E4 Context envelope</a>
+  <a href="#e5">E5 Cadence &amp; economics</a>
+  <a href="#e6">E6 Throughput &amp; bursts</a>
+  <div class="grp">Rigor</div>
+  <a href="#protocol">Protocol &amp; statistics</a>
+  <a href="#threats">Threats to validity</a>
+  <a href="#budget">Budget &amp; order of work</a>
+  <a href="#defense">Defense Q&amp;A</a>
+  <a href="#refs">References</a>
+</nav>
+
+<main id="top">
+<div class="eyebrow">Master's thesis · evaluation design from scratch · 30 Aug 2026</div>
+<h1>How to know the context engine works</h1>
+<p class="lede">A pre-registrable protocol for a two-lane streaming context engine: six experiments, two corpora, ground truth that never depends on anyone labelling "urgent", and the answers to the questions a committee will ask.</p>
+
+<h2><span class="k">Principles</span>Five rules every experiment below obeys</h2>
+<ol>
+<li><b>Ground truth is derived, never opined.</b> Every graded quantity is either re-derivable from the event log (a ticket's later status, a thread's actual reply, a fixing commit's files) or true by construction in a simulator. LLM judges appear only for free-text similarity, always position-swapped and κ-checked against a human sample.</li>
+<li><b>One variable at a time.</b> Routing, state, organisation, envelope, cadence and system are separate experiments with separate baselines. A failure is localisable; a success is attributable.</li>
+<li><b>Everything is paired on a frozen replay.</b> Every condition sees the identical event stream in the identical order; a leakage gate proves no event later than the probe time reached the store. Comparisons are paired differences with clustered standard errors, not bare means.</li>
+<li><b>Two corpora, for two different reasons.</b> A real multi-source organisation for external validity; a deterministic simulated company for the sources no public data provides (clicks, payments, support for the <em>same</em> customers) and for injected situations with known cost of delay. A claim counts only if it holds on both.</li>
+<li><b>Cost is a result, not a footnote.</b> Every quality number is reported next to tokens, dollars, and latency. The thesis argues about a trade-off, so the trade-off is what gets measured.</li>
+</ol>
+<div class="note"><p><b>Dropped from the old design, deliberately:</b> SWE-bench-Live as the primary study (the agent already has the repo, so the engine's contribution is confounded), the SPARK-only corpus, ProAgentBench, and the HBOS-vs-benchmarks study. Nothing below depends on the proposal's datasets.</p></div>
+
+<!-- ============ CLAIMS ============ -->
+<section id="claims">
+<h2><span class="k">Map</span>Claims and the experiments that test them</h2>
+<div class="tablewrap"><table class="matrix">
+<tr><th>Claim</th><th>What would falsify it</th><th class="c">E1</th><th class="c">E2</th><th class="c">E3</th><th class="c">E4</th><th class="c">E5</th><th class="c">E6</th></tr>
+<tr><td><b>C1 Routing.</b> A budgeted rules-plus-deviation router puts high-cost-of-delay events in the fast lane better than any equally budgeted baseline, without harming what it promotes.</td><td>Rules-only or random-at-budget matches it; or fast-routed events are handled no better now than at window close.</td><td class="c">●</td><td class="c"></td><td class="c"></td><td class="c">○</td><td class="c"></td><td class="c"></td></tr>
+<tr><td><b>C2 Fidelity.</b> The batch lane maintains per-entity state that is correct and current with respect to facts re-derivable from the log.</td><td>Probe accuracy on "as of T" facts is no better than reading the raw last-<i>N</i> events; supersession errors are common.</td><td class="c"></td><td class="c">●</td><td class="c">○</td><td class="c"></td><td class="c">○</td><td class="c"></td></tr>
+<tr><td><b>C3 Organisation.</b> Organising the store (per-entity structure, curation, cross-links) yields more correct context per token than unorganised alternatives, and the organisation does not erode over weeks of stream.</td><td>A rule-templated store or a vector index over raw events ties at equal read budget; or store health degrades until probes fail.</td><td class="c"></td><td class="c">○</td><td class="c">●</td><td class="c"></td><td class="c"></td><td class="c"></td></tr>
+<tr><td><b>C4 Envelope.</b> The composition of the context handed to the agent changes action quality; a small structured envelope beats both nothing and everything.</td><td>"Everything" wins outright, or envelope choice makes no measurable difference.</td><td class="c"></td><td class="c"></td><td class="c"></td><td class="c">●</td><td class="c"></td><td class="c"></td></tr>
+<tr><td><b>C5 Cadence.</b> Per-window folding amortises cost and preserves quality relative to per-event processing; the fast lane buys freshness only where it is paid for.</td><td>Per-event and per-window cost the same, or window folding loses fidelity.</td><td class="c"></td><td class="c">○</td><td class="c"></td><td class="c"></td><td class="c">●</td><td class="c">○</td></tr>
+<tr><td><b>C6 System.</b> The pipeline sustains target throughput with fast-lane tail latency under SLO during bursts, and the guards prevent the fast lane from amplifying a burst.</td><td>Fast-lane p99 collapses with aggregate load, or guard removal changes nothing.</td><td class="c">○</td><td class="c"></td><td class="c"></td><td class="c"></td><td class="c"></td><td class="c">●</td></tr>
+</table></div>
+<p class="small">● primary experiment for the claim · ○ contributes evidence</p>
+</section>
+
+<!-- ============ CORPORA ============ -->
+<section id="corpora">
+<h2><span class="k">Data</span>The two corpora</h2>
+<p>Companies receive clicks, chat, code activity, payments and tickets about the <em>same</em> customers and the <em>same</em> systems. No public dataset offers all of that for one organisation; a survey of ~60 candidates (references at the end) found the real world splits into two usable shapes.</p>
+
+<div class="two">
+<div class="card"><h3><span class="pill acc">Corpus R</span> Real: one Apache project, three live sources</h3>
+<p><b>Apache Kafka</b> (Flink or Spark as replication): the <code>dev@</code> and <code>users@</code> mailing lists from lists.apache.org (Pony Mail JSON/mbox, per-message epoch, sender, in-reply-to)<span class="cite"><a href="#r3">[3]</a></span>, the KAFKA JIRA via public REST with changelog and comments<span class="cite"><a href="#r3">[3]</a></span>, and GitHub PRs, reviews and pushes via GH Archive<span class="cite"><a href="#r12">[12]</a></span>, plus the project docs site via sitemap. All open, all still live, so a <b>post-cutoff window</b> (e.g. 2026-01 → 2026-06) exists.</p>
+<p><b>Entities:</b> <code>issue:KAFKA-N</code>, <code>pr:N</code>, <code>kip:N</code>, <code>contributor:&lt;hash&gt;</code>, <code>component:&lt;name&gt;</code>. Cross-source keys (<code>KAFKA-NNNN</code>, <code>KIP-NNN</code>) are mandated in subjects and commit messages, so joins are deterministic.</p>
+<p><b>Gives:</b> chat-like discussion (email threads), issue state machine, code activity, docs. <b>Lacks:</b> customers, clicks, payments. That is what Corpus S is for.</p>
+<p class="small">Alternative with true chat texture: Lean or Rust Zulip archives (web-public, per-message timestamps, PR cross-references) + GitHub<span class="cite"><a href="#r1">[1]</a><a href="#r2">[2]</a></span>. Use as a replication if time allows.</p></div>
+<div class="card"><h3><span class="pill truth">Corpus S</span> Simulated company with ground truth by construction</h3>
+<p><b>OrgForge</b> (MIT, arXiv 2603.14997, Mar 2026): a deterministic Python engine owns every fact; an LLM writes only prose. It emits an append-only, ISO-timestamped event bus generating Slack channels and DMs, Jira tickets, GitHub PRs and reviews, Confluence pages, Zendesk tickets, Salesforce records, invoices, NPS, and Datadog metrics/alerts, every artifact traceable to a SimEvent<span class="cite"><a href="#r15">[15]</a></span>.</p>
+<p><b>Extend it with the two sources it lacks:</b> a REES46-shaped clickstream generator (view / cart / purchase per <code>customer</code> and session, with real distributions fitted from the 285 M-event REES46 data)<span class="cite"><a href="#r7">[7]</a></span>, and Stripe events from the Stripe sandbox using test clocks and dispute fixtures (<code>charge.dispute.created/updated/closed</code>, refunds, failed invoices)<span class="cite"><a href="#r9">[9]</a></span>.</p>
+<p><b>Gives:</b> every source a company sees, about the same customers and systems; a world state queryable at any T; <em>injected situations</em> (dispute on a VIP, incident, churn signal, on-call page) with known onset times and assigned cost-of-delay; arbitrary scale for load tests.</p>
+<p><b>Honesty:</b> a single-author preprint; ~150 artifacts per 22-day run by default and must be scaled; prose quality depends on the generator model. Every result must replicate on Corpus R to count.</p></div>
+</div>
+
+<h3>Why not one of the other 58</h3>
+<p class="small">Kubernetes/CNCF Slack history is no longer accessible (free-tier retention since June 2025); Linen.dev mirrors have no bulk API; Public Jira Dataset (32 M changelog entries, CC BY) is excellent but frozen at Jan 2022 and single-source — used here only for label-noise calibration; Retailrocket / OTTO / Olist / Customer-Support-on-Twitter are single-company single-source and pre-2023 — used to fit generator distributions and as sanity corpora, not as the main stream; TheAgentCompany offers real GitLab/RocketChat services but no event log; Gaia2/ARE are consumer apps, not a company. Full survey in the references.</p>
+</section>
+
+<!-- ============ GROUND TRUTH ============ -->
+<section id="truth">
+<h2><span class="k">Ground truth</span>What "correct" means, per quantity</h2>
+<div class="tablewrap"><table>
+<tr><th>Quantity</th><th>Corpus R (derived from the log)</th><th>Corpus S (by construction)</th><th>Used by</th></tr>
+<tr><td>High cost-of-delay event</td><td>Weak labels fused by a label model: JIRA Blocker/Critical, <code>[VOTE]</code>/<code>[URGENT]</code>/release-blocker subjects, committer reply within 1 h, issue resolved within 24 h, CVE mentions. Accuracy of each source estimated, not assumed.</td><td>Injected situations with onset time and cost weight; hard negatives (benign volume spikes, chit-chat bursts).</td><td>E1</td></tr>
+<tr><td>Entity state as of T</td><td>JIRA changelog replayed to T (status, assignee, priority, fixVersion); PR merged/closed; KIP vote outcome; thread answered by whom.</td><td>Simulator world state at T (customer plan, open tickets, unpaid invoices, incident status, owner).</td><td>E2 E3 E5</td></tr>
+<tr><td>Cross-source link</td><td>Regex join on mandated keys (KAFKA-N in commits and threads; KIP-N in threads and PRs); join precision/recall reported.</td><td>Event graph edges.</td><td>E2 E3</td></tr>
+<tr><td>Supersession</td><td>Every changelog transition is a superseded fact with a timestamp.</td><td>Every state mutation is.</td><td>E2 E3</td></tr>
+<tr><td>Gold action</td><td>The actual human next step: who replied and whether the thread resolved; JIRA triage fields set by humans (assignee, component, duplicate-of); merged reviewer.</td><td>Scripted correct handling per injected situation (page whom, cite which order/ticket/plan, refund or not), plus fact-coverage of the drafted action against world state.</td><td>E4, E1 harm check</td></tr>
+<tr><td>Freshness</td><td colspan="2">Event time → first store snapshot whose files reference the event id.</td><td>E5</td></tr>
+<tr><td>Latency</td><td colspan="2">Intended send time → agent-run start (fast lane) / window close → fold commit (batch lane), open-loop.</td><td>E6</td></tr>
+</table></div>
+<div class="truth"><div class="lbl">Leakage gate (applies to every experiment)</div><p>Before any probe at time T, assert that no event with <code>time &gt; T</code> was ever delivered to the builder before the snapshot used, and that the probe question contains no post-T tokens. Log the assertion per probe; report the count.</p></div>
+</section>
+
+<!-- ============ E1 ============ -->
+<section id="e1">
+<div class="exp">
+<header><div class="id">E1</div><div><h3>Routing under a budget</h3><p>Does the router put high-cost-of-delay events in the fast lane better than equally budgeted baselines — and is promoting them actually useful?</p></div></header>
+<div class="body">
+<dl>
+<dt>Variable</dt><dd>Router policy, at fixed admission budgets b ∈ {1 %, 2 %, 5 %, 10 %}.</dd>
+<dt>Conditions</dt><dd>R0 random-at-budget · R1 rules-only · R2 global z-score (no entity keying) · R3 per-entity robust-z without guards · R4 <b>rules + per-entity robust-z + absolute floor + multi-window</b> (ours) · R5 always-fast (cost ceiling).</dd>
+<dt>Ground truth</dt><dd>S: injected situations with hard negatives. R: weakly-supervised labels; report label-model accuracy and agreement between sources.</dd>
+<dt>Primary metric</dt><dd><b>recall@budget</b> of high-cost events at b = 2 %, per source. Secondary: precision@budget, VUS-PR (threshold-free), affiliation precision/recall (lateness per situation), median and p95 detection delay, NAB score under the low-FN profile. No point-adjusted F1.</dd>
+<dt>Harm check</dt><dd>For events R4 promotes, run the fast-lane agent <em>now</em> and again <em>at window close</em>; compare action quality (E4 grader). If equal, promotion bought nothing — report it.</dd>
+<dt>Robustness</dt><dd>Jitter injected onset times ±5 min; flip 10 % of weak labels; rankings must be stable. Sweep θ per source and report the operating curve.</dd>
+<dt>Sample</dt><dd>S: ≥ 200 injected situations across ≥ 4 archetypes × 3 seeds. R: one 6-month window, ≥ 30 k events, ≥ 300 weak-positive events.</dd>
+<dt>Cost</dt><dd>No LLM needed except the harm check (~2 × 200 short runs).</dd>
+</dl>
+</div></div>
+</section>
+
+<!-- ============ E2 ============ -->
+<section id="e2">
+<div class="exp">
+<header><div class="id">E2</div><div><h3>State fidelity</h3><p>After replaying the stream, is the per-entity state correct and current?</p></div></header>
+<div class="body">
+<dl>
+<dt>Variable</dt><dd>What is read to answer a probe (store vs. raw alternatives), with the same read agent and read budget.</dd>
+<dt>Conditions</dt><dd>A0 nothing (model prior) · A1 raw last-<i>N</i> events of the entity (N = 20, 100) · A2 BM25 top-k over raw events · A3 embedding top-k over raw events · A4 <b>curated store</b> (read agent starts at INDEX/OVERVIEW) · sanity floors: retrieve-everything, retrieve-nothing.</dd>
+<dt>Probe families</dt><dd>
+<ul>
+<li><b>Extraction</b> — "what is the current plan / component / owner of X?"</li>
+<li><b>Temporal</b> — "what was the status of X as of T?" (T sampled inside the window)</li>
+<li><b>Knowledge update</b> — facts that changed at least twice; answer must be the latest, and the store must <em>not</em> return the superseded value</li>
+<li><b>Multi-source</b> — "which PR / thread / ticket relates to X?"</li>
+<li><b>Abstention</b> — facts that do not exist; answer must be "unknown"</li>
+</ul></dd>
+<dt>Grading</dt><dd>Exact match after normalisation for fields and IDs; claim-level context precision / recall for free-text facts (gold decomposed into atomic claims); link recall / precision for cross-source probes.</dd>
+<dt>Primary metric</dt><dd><b>Macro accuracy over the five families</b> for A4 vs A3. Secondary: supersession error rate, abstention precision, tokens read per probe, tool calls per probe, latency per probe.</dd>
+<dt>Sample</dt><dd>≥ 300 probes per corpus, stratified across families and entities; ≥ 150 entities.</dd>
+<dt>Cost</dt><dd>~300 × 5 arms × 2 corpora short read-agent runs per seed.</dd>
+</dl>
+</div></div>
+</section>
+
+<!-- ============ E3 ============ -->
+<section id="e3">
+<div class="exp">
+<header><div class="id">E3</div><div><h3>Store organisation — does organising the filesystem make sense?</h3><p>Same events, same builder model, different store designs. Which yields the most correct context per token, and does it stay healthy over time?</p></div></header>
+<div class="body">
+<dl>
+<dt>Variable</dt><dd>Store design, built from the identical replayed stream.</dd>
+<dt>Conditions</dt><dd>
+<div class="tablewrap"><table>
+<tr><th>Store</th><th>How it is built</th><th>What it isolates</th></tr>
+<tr><td><b>S0 dump</b></td><td>One file per event, chronological folders; no curation (the <code>fake</code> harness)</td><td>the filesystem alone</td></tr>
+<tr><td><b>S1 templated</b></td><td>Per-entity folder filled <em>by code</em>: OVERVIEW from structured fields, timeline appended, no LLM</td><td>whether the LLM adds anything over a rule-based Customer-360</td></tr>
+<tr><td><b>S2 curated flat</b></td><td>LLM builder, per-entity folder (OVERVIEW / timeline / facts / superseded), no cross-entity structure</td><td>curation</td></tr>
+<tr><td><b>S3 curated + index</b></td><td>S2 plus INDEX.md, topics/, cross-links, schema file (the seeded layout)</td><td>global organisation</td></tr>
+<tr><td><b>S4 vector</b></td><td>Embedding index over raw events, no files</td><td>the RAG alternative</td></tr>
+<tr><td><b>S5 hybrid</b></td><td>S3 plus an embedding index over the store's files</td><td>whether retrieval on top of curation helps</td></tr>
+</table></div></dd>
+<dt>Metrics</dt><dd>
+<ul>
+<li><b>Quality per token:</b> E2 probe accuracy at fixed read budgets (2k / 8k / 32k tokens) — the headline curve.</li>
+<li><b>Build cost:</b> builder tokens and $ per 1,000 events; wall time.</li>
+<li><b>Store health over time</b>, measured at weeks 1, 2, 4, 8 of the replay: file count and total bytes; share of files over the 200-line cap; INDEX accuracy (entries that resolve to existing files); dangling cross-references; near-duplicate fact rate (MinHash over <code>facts.md</code> lines); superseded-value leakage (a superseded value still present in OVERVIEW); probe accuracy at each checkpoint (erosion curve).</li>
+<li><b>Builder behaviour:</b> files touched per run, fraction of runs that rewrite vs append, retries after validator rejection.</li>
+</ul></dd>
+<dt>Primary metric</dt><dd><b>E2 macro accuracy at the 8k read budget</b>, S3 vs S1 and S3 vs S4. If S1 ties S3, the LLM curation is not earning its cost — that is a publishable finding.</dd>
+<dt>Sample</dt><dd>Both corpora; 3 seeds for LLM-built stores (S2, S3, S5) since the builder is nondeterministic; report between-seed variance of the store itself.</dd>
+<dt>Cost</dt><dd>The expensive experiment: 3 LLM-built stores × 2 corpora × 3 seeds ≈ 18 full replays. Cap replays at ~4k events each; use a mid-tier model for the sweep and the frontier model for S3 only, stated per arm.</dd>
+</dl>
+</div></div>
+</section>
+
+<!-- ============ E4 ============ -->
+<section id="e4">
+<div class="exp">
+<header><div class="id">E4</div><div><h3>Context envelope — what is the best context to give the agent?</h3><p>Fixed agent, fixed store (S3), fixed task; only the envelope changes. Graded against real human actions and by-construction correct handling.</p></div></header>
+<div class="body">
+<dl>
+<dt>Variable</dt><dd>Envelope composition and size.</dd>
+<dt>Conditions</dt><dd>
+<div class="tablewrap"><table>
+<tr><th>Envelope</th><th>Contents</th><th>Tests</th></tr>
+<tr><td>V0</td><td>triggering event only</td><td>floor / model prior</td></tr>
+<tr><td>V1</td><td>event + raw last-<i>N</i> entity events (N = 20, 100)</td><td>recency without curation</td></tr>
+<tr><td>V2</td><td>event + OVERVIEW only</td><td>minimal curated</td></tr>
+<tr><td>V3</td><td>event + OVERVIEW + timeline tail + top-k matched facts</td><td>recommended small envelope</td></tr>
+<tr><td>V4</td><td>V3 + the agent's own action log</td><td>continuity / idempotency</td></tr>
+<tr><td>V5</td><td>V3 + just-in-time tools (read_state, search_facts, recent_events)</td><td>pull vs push</td></tr>
+<tr><td>V6</td><td>all files of the entity, verbatim</td><td>"stuff everything" ceiling</td></tr>
+<tr><td>V7</td><td>V3 with superseded.md bodies included</td><td>distractor effect</td></tr>
+<tr><td>V8</td><td>V3 with sections shuffled / state placed mid-prompt</td><td>position effect</td></tr>
+</table></div></dd>
+<dt>Tasks &amp; gold</dt><dd>
+<ul>
+<li><span class="pill fast">FAST</span> R: a new Blocker ticket or urgent thread → predict assignee@k, component, duplicate-of, and draft the first reply; gold = the human triage fields and the actual first committer reply (ROUGE/F1 + position-swapped pairwise judge, κ-checked). S: an injected dispute / incident / VIP complaint → the drafted action must cite the right order, ticket, plan and owner; gold = world state (fact coverage, exact IDs).</li>
+<li><span class="pill batch">BATCH</span> Fold a window; gold = the resulting state delta scored against E2 probes for that entity (did the fold produce the right latest values, supersede the old, cite evidence events?).</li>
+</ul></dd>
+<dt>Primary metric</dt><dd><b>Action-quality composite</b> (mean of field exact-match and fact coverage) for V3 vs V1 and V3 vs V6. Secondary: tokens, latency, tool calls, citation validity (cited files/IDs exist), reliability pass^3.</dd>
+<dt>Sample</dt><dd>≥ 150 fast tasks and ≥ 150 batch windows per corpus; 3 runs each for pass^k.</dd>
+<dt>Cost</dt><dd>~9 envelopes × 300 tasks × 2 corpora × 3 runs of short agent calls; V6 is the expensive arm — cap at 50 tasks to show the cost curve.</dd>
+</dl>
+</div></div>
+</section>
+
+<!-- ============ E5 ============ -->
+<section id="e5">
+<div class="exp">
+<header><div class="id">E5</div><div><h3>Cadence and economics</h3><p>The fast/batch split as a knob: how does the granularity of incorporation trade cost, freshness and fidelity?</p></div></header>
+<div class="body">
+<dl>
+<dt>Variable</dt><dd>Incorporation cadence on the same stream, store S3.</dd>
+<dt>Conditions</dt><dd>W1 one event per run (everything fast) · W5, W20, W50 session windows with those caps · W20+rules (ours: window 20, rules floor promotes to fast) · W20+rules+deviation (ours, full).</dd>
+<dt>Metrics</dt><dd><b>Cost:</b> builder tokens and $ per 1,000 events, agent runs per 1,000 events. <b>Freshness:</b> event → reflected-in-snapshot delay, p50/p95, separately for high-cost and routine events. <b>Fidelity:</b> E2 macro accuracy of the resulting store; fragmentation (duplicate facts, files per entity). <b>Curve:</b> fidelity and freshness against cost, one point per condition.</dd>
+<dt>Primary metric</dt><dd>Cost per 1,000 events at equal E2 accuracy (within CI), W20+rules vs W1. The claim is that the batch lane amortises without losing fidelity; the fast lane buys freshness only for the budgeted events.</dd>
+<dt>Sample</dt><dd>Both corpora; 2 seeds (cost-limited). W1 capped to the last 1,000 events of the window.</dd>
+</dl>
+</div></div>
+</section>
+
+<!-- ============ E6 ============ -->
+<section id="e6">
+<div class="exp">
+<header><div class="id">E6</div><div><h3>Throughput, tail latency and bursts</h3><p>With the LLM mocked, does the pipeline sustain load, protect the fast lane during bursts, and avoid amplifying them?</p></div></header>
+<div class="body">
+<dl>
+<dt>Method</dt><dd>Open-loop replay from separate hardware at fixed rates; latency measured from the intended send time (coordinated-omission-safe); 25 % warm-up; sustainable throughput = the knee where p99 event-time latency stops being flat; resource demand = the minimal partitions/workers meeting the SLO at each load, swept over event rate <em>and</em> entity cardinality. Harness = <code>fake</code> (deterministic, ~constant service time), so the measurement is of routing, windowing and store commits, not of an LLM provider.</dd>
+<dt>Workloads</dt><dd>From Corpus S at matched burstiness B (fit on Corpus R and on REES46/GH Archive): steady · benign flash crowd (volume ×5, mix stable) · anomalous burst (type-mix shift on a hot entity) · Zipf-skewed hot entities · flash crowd + mid-burst worker kill.</dd>
+<dt>Metrics</dt><dd>Fast-lane latency to agent-start p50/p99/p99.9 during the burst window; batch-lane fold latency and staleness; consumer lag spike height and drain time; recovery time after kill; per-partition lag Gini; fast-lane admission rate over time plotted on the same axis as urgent-event SLO compliance (the <b>self-amplification chart</b>); cross-entity fairness (do cold entities' urgent events still make SLO during a hot-entity burst?).</dd>
+<dt>Ablations</dt><dd>Two-lane vs single undifferentiated lane; guard ablation — remove the absolute floor, the multi-window confirmation, and the per-window situation dedup one at a time; B → 0 (Poisson) control, where the two-lane advantage must shrink toward zero.</dd>
+<dt>Primary metric</dt><dd>Fast-lane p99.9 SLO attainment for injected urgent events at 1.5× the single-lane knee, two-lane vs single-lane, and its gap as a function of B.</dd>
+<dt>Cost</dt><dd>No LLM. Compute only.</dd>
+</dl>
+</div></div>
+</section>
+
+<!-- ============ PROTOCOL ============ -->
+<section id="protocol">
+<h2><span class="k">Rigor</span>Protocol and statistics</h2>
+<h3>Pre-registration</h3>
+<p>Before running anything, commit a document to the repo fixing: the corpus windows and seeds; each experiment's conditions, primary metric and the comparison it tests; the budget values, θ per source, window caps; the model per arm (builder, read agent, judge — judge from a different family); the exclusion rules; and the analysis code. Deviations are logged as amendments with dates. This is what lets you say "we did not shop for metrics."</p>
+<h3>Statistics</h3>
+<ul>
+<li>All comparisons are <b>paired per probe / task / situation</b> on the identical stream; report the paired difference with a BCa bootstrap 95 % CI (10,000 resamples). Probes sharing an entity are not independent: cluster by entity.</li>
+<li>Binary outcomes between two conditions: McNemar's test on the discordant cells.</li>
+<li>One primary metric per experiment, named above; Holm–Bonferroni across the secondaries of that experiment.</li>
+<li>Power: to detect a 10-point difference in a proportion near 0.6 with paired data, α = 0.05, power 0.8, n ≈ 150 paired units — the sample sizes above are set from this.</li>
+<li>Nondeterminism: ≥ 3 seeds for every LLM-built store; report pass^3 for tasks and the between-seed variance of probe accuracy and store-health metrics. Temperature 0 does not remove it; say so.</li>
+<li>Sanity floors always run through the same code: random router, retrieve-everything, retrieve-nothing, model-prior. Any metric that ranks a floor near the real system is broken for this setting and is dropped.</li>
+</ul>
+<h3>Human audit</h3>
+<p>Derived ground truth can be wrong (a JIRA field set late, a simulator prose error). Sample 200 probes and 100 gold actions across both corpora; two annotators check gold correctness and grade a subset of free-text outputs; report Cohen's κ for annotator agreement and for judge-vs-human. Trust judge scores only on slices where κ ≥ 0.6.</p>
+<h3>Reproducibility package</h3>
+<p>Frozen replay files (event JSONL with intended timestamps), corpus builders (Pony Mail / JIRA / GH Archive extractors; OrgForge config and seeds; Stripe fixture scripts), prompts and schema versions, probe sets with gold, analysis notebooks, and the exact model IDs and dates. A reader should be able to re-run E2 on S0 vs S3 in an afternoon.</p>
+</section>
+
+<!-- ============ THREATS ============ -->
+<section id="threats">
+<h2><span class="k">Rigor</span>Threats to validity, written down now</h2>
+<div class="tablewrap"><table>
+<tr><th>Threat</th><th>Mitigation</th><th>Residual</th></tr>
+<tr><td>Construct: "correct context" proxied by probe accuracy and field exact-match</td><td>Five probe families incl. abstention; action-quality composite; human audit of gold</td><td>Free-text quality is judge-dependent</td></tr>
+<tr><td>Simulator realism (Corpus S)</td><td>Distributions fitted from real data; burstiness matched; every claim replicated on Corpus R</td><td>Prose diversity limited by the generator model</td></tr>
+<tr><td>External validity (Corpus R is one OSS project; email, not Slack)</td><td>Second project or a Zulip corpus as replication; report per-source</td><td>No real customer/payment stream</td></tr>
+<tr><td>Contamination: the model has seen Kafka's history</td><td>Post-cutoff windows; A0/V0 measure the prior; gold is a <em>later</em> event, not a memorised fact</td><td>Cannot rule out for pre-cutoff facts — report the prior explicitly</td></tr>
+<tr><td>Weak-label noise in E1 on Corpus R</td><td>Label model with estimated source accuracy; label-flip robustness; Corpus S has exact labels</td><td>Real "urgency" remains partly a judgment</td></tr>
+<tr><td>Builder nondeterminism</td><td>Seeds, pass^k, store-variance reporting</td><td>Costs limit seeds to 3</td></tr>
+<tr><td>Model dependence</td><td>Two builder tiers on E3's S3; read agent fixed across arms</td><td>Results dated to model versions</td></tr>
+<tr><td>Join bias (only linked tickets/threads have gold)</td><td>Report link recall/precision; exclusion counts</td><td>Well-documented items over-represented</td></tr>
+<tr><td>Experimenter degrees of freedom</td><td>Pre-registration, primary metrics fixed, amendments logged</td><td>—</td></tr>
+</table></div>
+</section>
+
+<!-- ============ BUDGET ============ -->
+<section id="budget">
+<h2><span class="k">Plan</span>Budget and order of work</h2>
+<div class="tablewrap"><table>
+<tr><th>Step</th><th>Deliverable</th><th>LLM cost (order of magnitude)</th><th>Why this order</th></tr>
+<tr><td>1</td><td>Corpus R extractor (Pony Mail, JIRA REST, GH Archive, sitemap) → frozen replay; leakage gate; probe generators for the five families with gold</td><td>none</td><td>Everything downstream needs the replay and the probes</td></tr>
+<tr><td>2</td><td>OrgForge run with clickstream + Stripe extensions; injected situations; world-state dump per T</td><td>generator prose only</td><td>Gives E1/E4 exact gold and E6 workloads</td></tr>
+<tr><td>3</td><td>E6 with the fake harness</td><td>none</td><td>Cheapest real result; validates the pipeline before spending on LLMs</td></tr>
+<tr><td>4</td><td>E1 (no LLM) + S0 / S1 / S4 stores + E2 on them</td><td>read-agent only</td><td>Baselines first, so the curated arms are compared against something already measured</td></tr>
+<tr><td>5</td><td>S3 store, 3 seeds, both corpora → E2, E3 health curve</td><td>the main spend</td><td>The central claim</td></tr>
+<tr><td>6</td><td>E4 envelopes on S3; E1 harm check</td><td>medium</td><td>Needs the store</td></tr>
+<tr><td>7</td><td>E5 cadence sweep; S2 / S5 stores if budget remains</td><td>medium</td><td>Secondary claims</td></tr>
+<tr><td>8</td><td>Human audit; analysis; write-up</td><td>none</td><td>—</td></tr>
+</table></div>
+<p class="small">If budget forces cuts, cut in this order: S5, then S2, then E5's W1 arm, then the second builder tier. Never cut the baselines or the seeds.</p>
+</section>
+
+<!-- ============ DEFENSE ============ -->
+<section id="defense">
+<h2><span class="k">Defense</span>The questions they will ask</h2>
+
+<details><summary><span class="n">01</span>You never labelled what "urgent" means. How can you evaluate routing?</summary><div class="a"><p>Because "urgent" as a human label is unreliable: about half of duplicate bug reports carry inconsistent severities, and a third of "bugs" are misclassified. We define the fast lane operationally as high expected cost of delay, then evaluate against two things that do not need that label: injected situations with known onset and cost in the simulator, and weakly-supervised outcome labels on the real corpus (resolved within 24 h, committer reply within 1 h) whose noise is modelled. We also check whether promotion changed the outcome (E1 harm check). Ranking quality without a harm check is not enough — a 0.94-AUROC trigger has been shown to hurt.</p></div></details>
+<details><summary><span class="n">02</span>Isn't the simulator a toy?</summary><div class="a"><p>It is the only way to get clicks, payments, chat and tickets about the same customers with a queryable world state; no public corpus has that. It is used for what real data cannot provide — exact state at T, injected situations, arbitrary load — and every claim must replicate on the real Apache corpus to count. Distributions are fitted from real click and payment data and burstiness is matched to real streams.</p></div></details>
+<details><summary><span class="n">03</span>Isn't this just RAG with extra steps?</summary><div class="a"><p>E3 tests exactly that: S4 is a vector index over raw events with the same read agent and read budget. The difference between RAG and a maintained store is accumulation — RAG re-retrieves from a static log and rediscovers state every time; the store folds. If S4 ties S3, we say so. S5 tests whether both together are better.</p></div></details>
+<details><summary><span class="n">04</span>Why should an LLM organise files? A rule-based Customer-360 does this already.</summary><div class="a"><p>That is S1, built by code with no LLM, and it is a required baseline. The thesis's claim is only defensible if S3 beats S1 per token on the multi-source and knowledge-update probe families, where fixed schemas cannot know in advance what matters. If S1 ties, the finding is that curation is not worth its cost for this data — still a result.</p></div></details>
+<details><summary><span class="n">05</span>Your builder is nondeterministic. How is any of this reproducible?</summary><div class="a"><p>The replay is frozen, prompts and schemas are versioned, gold is deterministic, and every LLM-built store is built three times with different seeds. We report between-seed variance of both probe accuracy and the store's own shape, and pass^3 for tasks. Nondeterminism is a measured property of the system, not an excuse.</p></div></details>
+<details><summary><span class="n">06</span>The model has read Kafka's entire history. Isn't it answering from memory?</summary><div class="a"><p>Windows are post-cutoff for the real corpus; the A0/V0 arms measure what the model knows with no store; and gold facts are later events (a status transition, a reply), not encyclopaedic facts. For the simulator, contamination is impossible by construction.</p></div></details>
+<details><summary><span class="n">07</span>How do you know the state is right if no human checked it?</summary><div class="a"><p>Because "right" is defined against facts re-derived from the log or the simulator, not against opinion. We additionally audit 200 probes and 100 gold actions with two annotators and report κ, so the reader can see how often derived gold is itself wrong.</p></div></details>
+<details><summary><span class="n">08</span>Why two lanes? Why not process everything immediately, or everything in batches?</summary><div class="a"><p>Both are arms. W1 (everything fast) shows the cost ceiling; W50 shows the freshness floor; E6 shows the single lane's urgent tail collapsing under burst while the two-lane holds it, and that the advantage shrinks toward zero as burstiness goes to zero — proving the gain is burst-specific, not free headroom.</p></div></details>
+<details><summary><span class="n">09</span>Isn't the 2 % budget arbitrary?</summary><div class="a"><p>It is a parameter and it is swept (1, 2, 5, 10 %). The claim is about the shape of the operating curve, and the budget is the operator's knob; we show what each setting buys.</p></div></details>
+<details><summary><span class="n">10</span>What is "the best context"? Best for what?</summary><div class="a"><p>Operationally: the envelope that maximises action quality against human/gold actions per token. E4 holds the agent, the store and the task fixed and varies only the envelope, including a "stuff everything" ceiling and a distractor arm. "Best" is whichever arm wins that paired comparison at a stated token budget, and we show the whole curve.</p></div></details>
+<details><summary><span class="n">11</span>Does the organisation hold up, or does the store rot?</summary><div class="a"><p>Measured directly: store-health metrics and probe accuracy at weeks 1, 2, 4 and 8 of replay. Prior work found filesystem-memory organisation erodes for all but the strongest management agents; we report our erosion curve rather than a single end-of-run number.</p></div></details>
+<details><summary><span class="n">12</span>What does it cost?</summary><div class="a"><p>Every quality number is reported next to tokens, dollars and latency, and E5 gives cost per 1,000 events per cadence. Cost is a result of the thesis, not an appendix.</p></div></details>
+<details><summary><span class="n">13</span>You run a single node. Where is the scalability?</summary><div class="a"><p>E6 reports resource demand as a function of load and entity cardinality (the Theodolite method) because per-entity state shards on the same key the stream partitions on. We show the demand curve on one node and argue linearity from the keying, and we say explicitly that multi-node is future work.</p></div></details>
+<details><summary><span class="n">14</span>Your latency numbers exclude the LLM. Isn't that hiding the real bottleneck?</summary><div class="a"><p>Deliberately. E6 measures the engine — routing, windowing, commits — with a deterministic harness so the number is not a measurement of a vendor's API. The LLM cost is reported separately as agent-runs and tokens per 1,000 events per lane (E5), which is the quantity a deployer can act on.</p></div></details>
+<details><summary><span class="n">15</span>How is this different from Confluent's Real-Time Context Engine or Flink Agents?</summary><div class="a"><p>They materialise per-entity state with SQL views defined by a developer and trigger agents on developer-written conditions. Here an agent harness folds heterogeneous events into human-readable state, a label-free budgeted lane decides what is urgent, and the state's fidelity is evaluated against derivable ground truth. Each piece has a neighbour; the intersection does not exist, and neither does the evaluation.</p></div></details>
+<details><summary><span class="n">16</span>Why markdown files rather than a graph or a database?</summary><div class="a"><p>Inspectability (a human can read and diff the state), versioning for free, and tool-native access for coding-agent harnesses. The graph alternative is represented by the vector arm and by the templated store; if a structured store wins per token, the thesis reports it. Evidence exists both ways — a filesystem agent beat a graph memory on LoCoMo, and a 2026 study found file organisation erodes — which is why E3 exists.</p></div></details>
+<details><summary><span class="n">17</span>Email is not Slack. Clicks from 2019 are not today's. Is the data realistic?</summary><div class="a"><p>The real corpus is real, live and multi-source; it lacks customers. The simulator supplies customers, clicks and payments with distributions fitted from real data. We state the nature of each source and, where the thesis needs a chat texture, use Zulip archives as replication. No claim rests on one corpus.</p></div></details>
+<details><summary><span class="n">18</span>What if the curated store loses?</summary><div class="a"><p>Then the thesis reports that a templated or retrieval-based store is sufficient at this scale, with the cost curve to prove it, and the two-lane and evaluation contributions stand on their own. The protocol is pre-registered precisely so that a negative result is credible.</p></div></details>
+<details><summary><span class="n">19</span>Ethics and licences?</summary><div class="a"><p>Apache lists, JIRA and GitHub are public under ASF and GitHub terms; contributor identities are hashed; nothing is redistributed beyond IDs and derived probes. The simulator is MIT and contains no real people. Reused datasets (REES46, Olist, Retailrocket) are used only to fit distributions, within their licences.</p></div></details>
+<details><summary><span class="n">20</span>Which single result should we look at?</summary><div class="a"><p>The E3 curve: probe accuracy against read budget for S1, S3 and S4 on both corpora, with the erosion checkpoints. It answers whether organising the store is worth it, per token, over time. Everything else explains why and what it costs.</p></div></details>
+</section>
+
+<!-- ============ REFS ============ -->
+<section id="refs" class="refs">
+<h2><span class="k">Sources</span>References (data sources and methods; literature is in the research brief)</h2>
+<ol>
+<li id="r1">leanprover-community/archive — public Lean Zulip archive as topic-level JSON. github.com/leanprover-community/archive</li>
+<li id="r2">Rust Zulip (web-public streams), Zulip REST API; rust-lang/rust-forge zulip.md; Zulip terms permit owner-approved public mirrors. zulip.com/policies/terms</li>
+<li id="r3">Apache Pony Mail (lists.apache.org) API: stats.lua / mbox.lua monthly archives; Apache JIRA REST (issues.apache.org/jira/rest/api/2/search, no auth). github.com/apache/incubator-ponymail-foal/blob/master/docs/API.md</li>
+<li id="r4">Claes, M., Mäntylä, M. 20-MAD: 20 Years of Issues and Commits of Mozilla and Apache Development. MSR 2020. arXiv:2003.14015; osf.io/kvxr4 (CC BY 4.0).</li>
+<li id="r5">DISCO: Discord developer-community conversations. zenodo.org/records/5886240</li>
+<li id="r6">Kubernetes blog, "Changes to Kubernetes Slack", 16 Jun 2025 — 90-day retention; archives not searchable.</li>
+<li id="r7">REES46 eCommerce behavior data (285 M events, 2019-10 → 2020-04). rees46.com/en/datasets; Kaggle mkechinov/ecommerce-behavior-data-from-multi-category-store. Retailrocket (CC BY-NC-SA 4.0), OTTO RecSys 2022 (CC BY 4.0) as alternatives.</li>
+<li id="r8">Olist Brazilian E-Commerce (order state machine, payments, reviews; CC BY-NC-SA 4.0). kaggle.com/datasets/olistbr/brazilian-ecommerce. UCI Online Retail II (CC BY 4.0).</li>
+<li id="r9">Stripe documentation: event types (charge.dispute.*, charge.refunded, invoice.*), dispute lifecycle and statuses, test clocks, CLI fixtures and triggers, Sigma schema. docs.stripe.com</li>
+<li id="r10">Customer Support on Twitter (Kaggle, thoughtvector; reply graph with timestamps; CC BY-NC-SA 4.0). TWEETSUMM (guyfe/Tweetsumm, CDLA-Sharing-1.0).</li>
+<li id="r11">Zendesk Ticket Audits API (per-ticket timestamped audit events; own tenant only). developer.zendesk.com</li>
+<li id="r12">GH Archive (hourly public GitHub events since 2011; BigQuery githubarchive.*; data licence unspecified). gharchive.org</li>
+<li id="r13">Montgomery, L., Lüders, C., Maalej, W. An Alternative Issue Tracking Dataset of Public Jira Repositories. MSR 2022. arXiv:2201.08368; anonymised release zenodo.org/records/15719919 (CC BY 4.0).</li>
+<li id="r14">SWE-bench-Live (arXiv:2505.23419; MIT) — retained only as an optional execution-graded slice.</li>
+<li id="r15">OrgForge: deterministic simulated organisation with append-only SimEvent bus (Slack, Jira, GitHub, Confluence, Zendesk, Salesforce, invoices, Datadog). arXiv:2603.14997; github.com/aeriesec/orgforge (MIT).</li>
+<li id="r16">TheAgentCompany (arXiv:2412.14161; MIT) — real GitLab/RocketChat/ownCloud/Plane services, no event log.</li>
+<li id="r17">Meta Agents Research Environments / Gaia2 (arXiv:2509.17158, 2602.11964) — discrete time manager and event DAGs, consumer apps.</li>
+<li id="r18">τ-bench / τ²-bench (arXiv:2406.12045, 2506.07982) — DB-state grading and pass^k.</li>
+<li id="r19">Burst generation: Willinger et al. 1997 (Pareto ON/OFF self-similarity, DOI 10.1109/90.554723); Fischer &amp; Meier-Hellstern 1993 (MMPP cookbook, DOI 10.1016/0166-5316(93)90035-S); Nexmark generator rate shapes (github.com/nexmark/nexmark); SimPy.</li>
+<li id="r20">Methods cited in the research brief: Karimov et al. 2018 (event-time latency, sustainable throughput); Henning &amp; Hasselbring 2021/2022 (Theodolite resource demand); Tene, wrk2 (coordinated omission); Paparrizos et al. 2022 (VUS); Huet et al. 2022 (affiliation); Kim et al. 2022 (point-adjustment pitfall); Ratner et al. 2017 (Snorkel); Tian et al. 2016 and Herzig et al. 2013 (label noise); Wu et al. 2025 (LongMemEval families); Es et al. 2023 (RAGAS); Miller 2024 (error bars); Zhou et al. 2026 (filesystem-memory erosion); Vasudev et al. 2026 (prediction ≠ prevention).</li>
+</ol>
+</section>
+</main>
+</div>

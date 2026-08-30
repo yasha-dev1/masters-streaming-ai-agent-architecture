@@ -1,0 +1,55 @@
+<title>$title$</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Fira+Code:wght@400;500&display=swap">
+<style>
+:root{--paper:#F6F7F5;--paper-2:#ECEFEA;--ink:#1B1F1E;--ink-2:#4B5450;--ink-3:#7C8580;--rule:#D5DAD4;--accent:#2B4C8C;--accent-soft:#DCE4F4;--accent-ink:#1F3A6E;--truth:#0F7A5A;--truth-soft:#D8EFE6;--warn:#A46A10;--warn-soft:#F6E8CC;--code:#E8ECE7}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper:#151817;--paper-2:#1D2220;--ink:#E6EAE6;--ink-2:#B2BBB5;--ink-3:#7F8983;--rule:#2D3430;--accent:#8FB0EE;--accent-soft:#1B2A45;--accent-ink:#B7CCF5;--truth:#6FD1AC;--truth-soft:#123528;--warn:#E0B25E;--warn-soft:#3A2C12;--code:#222825}}
+:root[data-theme="dark"]{--paper:#151817;--paper-2:#1D2220;--ink:#E6EAE6;--ink-2:#B2BBB5;--ink-3:#7F8983;--rule:#2D3430;--accent:#8FB0EE;--accent-soft:#1B2A45;--accent-ink:#B7CCF5;--truth:#6FD1AC;--truth-soft:#123528;--warn:#E0B25E;--warn-soft:#3A2C12;--code:#222825}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.58;margin:0}
+a{color:var(--accent)}
+.shell{display:grid;grid-template-columns:260px minmax(0,1fr);max-width:1300px;margin:0 auto}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:34px 18px 34px 26px;border-right:1px solid var(--rule);font-size:13px}
+nav.toc .brand{font-family:Spectral,Georgia,serif;font-weight:600;font-size:17px;margin-bottom:14px}
+nav.toc ul{list-style:none;padding-left:0;margin:0}
+nav.toc ul ul{padding-left:12px}
+nav.toc li{margin:0}
+nav.toc a{display:block;color:var(--ink-2);text-decoration:none;padding:4px 0 4px 10px;border-left:2px solid transparent;margin-left:-12px;line-height:1.35}
+nav.toc a:hover{color:var(--ink);border-left-color:var(--accent)}
+nav.toc > ul > li > ul{display:none}
+main{padding:40px 52px 100px 56px;min-width:0}
+.eyebrow{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+h1.title{font-family:Spectral,Georgia,serif;font-weight:500;font-size:40px;line-height:1.1;margin:8px 0 10px;text-wrap:balance;letter-spacing:-.01em}
+p.subtitle{font-family:Spectral,Georgia,serif;font-size:21px;line-height:1.45;color:var(--ink-2);max-width:62ch;margin:0 0 30px}
+h2{font-family:Spectral,Georgia,serif;font-weight:500;font-size:28px;line-height:1.15;margin:56px 0 10px;text-wrap:balance;padding-top:6px;border-top:1px solid var(--rule)}
+h3{font-family:Spectral,Georgia,serif;font-weight:600;font-size:21px;margin:34px 0 8px;text-wrap:balance}
+h3[id^="e"]{padding:12px 16px;background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 6px 6px 0}
+p,li{max-width:76ch}
+p{margin:0 0 12px}
+ul,ol{padding-left:22px;margin:0 0 14px}
+li{margin:0 0 6px}
+code{font-family:"Fira Code",ui-monospace,Menlo,monospace;font-size:.85em;background:var(--code);padding:1px 5px;border-radius:3px}
+pre{background:var(--code);padding:14px 16px;border-radius:6px;overflow-x:auto;font-size:12.6px;line-height:1.5;max-width:100%}
+pre code{background:none;padding:0;font-size:inherit}
+blockquote{border-left:3px solid var(--warn);background:var(--warn-soft);padding:12px 18px;border-radius:0 6px 6px 0;margin:16px 0;max-width:84ch}
+blockquote p{max-width:none}
+blockquote p:last-child{margin:0}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:14px 0 22px;display:block;overflow-x:auto;border:1px solid var(--rule);border-radius:6px}
+thead,tbody{display:table;width:100%;min-width:640px}
+th,td{padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top;text-align:left}
+th{background:var(--paper-2);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);font-weight:700}
+tbody tr:last-child td{border-bottom:none}
+strong{font-weight:700}
+@media (max-width:920px){.shell{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule)}main{padding:28px 20px 72px}h1.title{font-size:32px}}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+<div class="shell">
+<nav class="toc" aria-label="Sections"><div class="brand">Evaluation Spec</div>
+$toc$
+</nav>
+<main>
+<div class="eyebrow">Implementer specification · $date$ · source: evaluation.md</div>
+<h1 class="title">$title$</h1>
+$if(subtitle)$<p class="subtitle">$subtitle$</p>$endif$
+$body$
+</main>
+</div>

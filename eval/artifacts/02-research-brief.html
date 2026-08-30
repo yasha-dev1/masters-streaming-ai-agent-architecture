@@ -1,0 +1,593 @@
+<title>Two-Lane Context Engine Research Brief</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#F5F7F8; --paper-2:#EBEFF1; --ink:#182027; --ink-2:#48545E; --ink-3:#7B8791; --rule:#D3DAE0;
+  --accent:#0F6E75; --accent-soft:#D9EEF0; --accent-ink:#0A4F55;
+  --fast:#B4731A; --fast-soft:#F7E9CF; --batch:#2E67A8; --batch-soft:#DCE8F6;
+  --ok:#2C7A4B; --ok-soft:#DCEFE3; --bad:#AE3B3B; --bad-soft:#F5DCDC; --warn:#A46A10; --warn-soft:#F6E8CC;
+  --code:#E9EEF1;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#131719; --paper-2:#1B2124; --ink:#E5EAED; --ink-2:#B0BAC2; --ink-3:#7E8A93; --rule:#2B3438;
+    --accent:#6FC4CB; --accent-soft:#12353A; --accent-ink:#9EDDE2;
+    --fast:#E2A64B; --fast-soft:#3B2C12; --batch:#84B4EA; --batch-soft:#1B2F45;
+    --ok:#7FCB98; --ok-soft:#18321F; --bad:#E58C8C; --bad-soft:#3D1E1E; --warn:#E0B25E; --warn-soft:#3A2C12;
+    --code:#1F272B;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#131719; --paper-2:#1B2124; --ink:#E5EAED; --ink-2:#B0BAC2; --ink-3:#7E8A93; --rule:#2B3438;
+  --accent:#6FC4CB; --accent-soft:#12353A; --accent-ink:#9EDDE2;
+  --fast:#E2A64B; --fast-soft:#3B2C12; --batch:#84B4EA; --batch-soft:#1B2F45;
+  --ok:#7FCB98; --ok-soft:#18321F; --bad:#E58C8C; --bad-soft:#3D1E1E; --warn:#E0B25E; --warn-soft:#3A2C12;
+  --code:#1F272B;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.58;margin:0}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.shell{display:grid;grid-template-columns:236px minmax(0,1fr);max-width:1260px;margin:0 auto}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:34px 18px 34px 26px;border-right:1px solid var(--rule);font-size:13.5px}
+nav.toc .brand{font-family:Newsreader,Georgia,serif;font-weight:600;font-size:17px;margin-bottom:16px}
+nav.toc a{display:block;color:var(--ink-2);padding:5px 0 5px 10px;border-left:2px solid transparent;margin-left:-12px}
+nav.toc a:hover{color:var(--ink);border-left-color:var(--accent);text-decoration:none}
+nav.toc .grp{margin-top:14px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+main{padding:40px 52px 100px 56px;min-width:0}
+.eyebrow{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+h1{font-family:Newsreader,Georgia,serif;font-weight:500;font-size:44px;line-height:1.08;margin:8px 0 14px;text-wrap:balance;letter-spacing:-.012em}
+h2{font-family:Newsreader,Georgia,serif;font-weight:500;font-size:30px;line-height:1.15;margin:60px 0 6px;text-wrap:balance}
+h2 .q{display:block;font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.08em;color:var(--accent);margin-bottom:8px;text-transform:uppercase}
+h3{font-family:Newsreader,Georgia,serif;font-weight:600;font-size:20px;margin:30px 0 8px;text-wrap:balance}
+h4{font-size:13px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);margin:22px 0 6px;font-weight:600}
+p,li{max-width:72ch}
+p{margin:0 0 12px}
+ul,ol{padding-left:22px;margin:0 0 14px}
+li{margin:0 0 7px}
+.lede{font-family:Newsreader,Georgia,serif;font-size:21px;line-height:1.45;color:var(--ink-2);max-width:62ch}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:.87em}
+code{background:var(--code);padding:1px 5px;border-radius:3px}
+pre{background:var(--code);padding:14px 16px;border-radius:6px;overflow-x:auto;font-size:12.8px;line-height:1.5}
+pre code{background:none;padding:0;font-size:inherit}
+.cite{font-family:"IBM Plex Mono",monospace;font-size:.72em;color:var(--accent);vertical-align:super;line-height:0;white-space:nowrap}
+.cite a{color:inherit}
+.verdict{border-left:3px solid var(--accent);background:var(--accent-soft);padding:16px 20px;border-radius:0 6px 6px 0;margin:16px 0 22px;max-width:80ch}
+.verdict .lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);font-weight:600;margin-bottom:6px}
+.verdict p{font-family:Newsreader,Georgia,serif;font-size:18.5px;line-height:1.45;margin:0;max-width:none}
+.note{border-left:3px solid var(--warn);background:var(--warn-soft);padding:12px 18px;border-radius:0 6px 6px 0;margin:16px 0;max-width:80ch}
+.note.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+.note p:last-child{margin:0}
+.ladder{display:grid;gap:0;border:1px solid var(--rule);border-radius:8px;overflow:hidden;margin:26px 0 8px}
+.ladder .row{display:grid;grid-template-columns:52px 1fr 1.25fr;gap:16px;padding:14px 18px;border-bottom:1px solid var(--rule);background:var(--paper-2)}
+.ladder .row:last-child{border-bottom:none}
+.ladder .k{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent);padding-top:3px}
+.ladder .qq{font-weight:500}
+.ladder .a{color:var(--ink-2);font-size:14.5px}
+.ladder .row p{max-width:none;margin:0}
+.tablewrap{overflow-x:auto;margin:14px 0 22px;border:1px solid var(--rule);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:680px}
+th,td{padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top;text-align:left}
+th{background:var(--paper-2);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+tr:last-child td{border-bottom:none}
+td.c{text-align:center}
+.pill{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.04em;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pill.fast{background:var(--fast-soft);color:var(--fast)}.pill.batch{background:var(--batch-soft);color:var(--batch)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.bad{background:var(--bad-soft);color:var(--bad)}.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:14px 0 20px}
+.card{border:1px solid var(--rule);border-radius:6px;padding:16px 18px;background:var(--paper-2)}
+.card h3{margin-top:0}
+.card p,.card li{max-width:none}
+.card.fast{border-top:3px solid var(--fast)}.card.batch{border-top:3px solid var(--batch)}
+.flow{display:grid;grid-template-columns:1fr;gap:6px;margin:16px 0 20px;font-family:"IBM Plex Mono",monospace;font-size:12.5px}
+.flow .l{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:start}
+.flow .l b{color:var(--ink-2);font-weight:500}
+.flow .l span{background:var(--paper-2);border:1px solid var(--rule);border-radius:5px;padding:7px 10px;display:block}
+.flow .l.fast span{border-color:var(--fast)}.flow .l.batch span{border-color:var(--batch)}
+.refs{columns:1;font-size:13.2px;line-height:1.45;color:var(--ink-2)}
+.refs ol{padding-left:34px;max-width:none}
+.refs li{max-width:none;margin:0 0 5px;padding-left:4px}
+.refs li:target{background:var(--accent-soft);color:var(--ink);border-radius:4px}
+.refs .h{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:18px 0 6px}
+.small{font-size:13.5px;color:var(--ink-2)}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:0 0 16px;max-width:82ch}
+dt{font-weight:600}dd{margin:0}
+@media (max-width:920px){.shell{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule)}main{padding:28px 20px 72px}.two{grid-template-columns:1fr}.ladder .row{grid-template-columns:40px 1fr}.ladder .a{grid-column:2}h1{font-size:34px}}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+
+<div class="shell">
+<nav class="toc" aria-label="Sections">
+  <div class="brand">Two-Lane Context Engine</div>
+  <a href="#top">The five questions</a>
+  <div class="grp">Answers</div>
+  <a href="#q0">0 · Is storing/aggregating the engine's job?</a>
+  <a href="#q1">1 · What goes fast, what goes batch</a>
+  <a href="#q2">2 · Best context for the agent</a>
+  <a href="#q3">3 · What "processing" means</a>
+  <a href="#q4">4 · How to evaluate it</a>
+  <div class="grp">Position</div>
+  <a href="#prior">Prior art and the gap</a>
+  <a href="#pitfalls">Pitfalls the literature warns about</a>
+  <a href="#refs">References</a>
+</nav>
+
+<main id="top">
+<div class="eyebrow">Research brief · 30 Aug 2026 · synthesised from five literature passes, every citation opened and checked</div>
+<h1>Where the events go, what the agent sees, and how to prove it works</h1>
+<p class="lede">The problem: a scalable system takes a very high throughput of heterogeneous events, promotes the few that matter to an AI harness immediately, folds the rest into something an agent can use later — and has to be evaluated honestly. What the literature says about each open question, and what it does not say.</p>
+
+<div class="ladder">
+  <div class="row"><div class="k">Q0</div><div class="qq"><p>Is it the engine's job to store events and keep aggregated, agent-ready state — and when should that happen?</p></div><div class="a"><p><b>Yes.</b> Every production memory system writes state incrementally per event and reads it cheaply at inference; nobody rebuilds state from raw logs on the hot path. Keep the raw log, maintain per-entity state, give the agent bounded tools back into the log. Aggregate at per-entity window close; compact periodically; pin the facts that must not be summarised away.</p></div></div>
+  <div class="row"><div class="k">Q1</div><div class="qq"><p>Which events go to the fast lane, which to batch, and how does that decision work?</p></div><div class="a"><p>Define urgency as <b>expected cost of delay</b> (Horvitz), not as a label. The fast lane is a <b>budget</b> (~1–5 %), the classifier a ranker under it. Two static layers: a per-source rules floor, then a per-entity deviation score with an absolute-volume floor. Expect modest ranking quality (F1 ≈ 0.6–0.7 in comparable settings); the budget, not the model, is the safety control.</p></div></div>
+  <div class="row"><div class="k">Q2</div><div class="qq"><p>What is the best context to give the agent for a processing run?</p></div><div class="a"><p>The smallest high-signal set, ordered for primacy/recency and cache stability: stable prefix → entity state → events as one block → compact action log → instruction. Fast runs ≤ ~10k tokens with just-in-time tools; batch runs larger but consolidated, never replayed turn by turn. Exclude superseded material by default — it is a measured distractor.</p></div></div>
+  <div class="row"><div class="k">Q3</div><div class="qq"><p>What does "processing" mean for an AI harness on either lane?</p></div><div class="a"><p>A typed run: <code>(state@version, events[], action_log) → state_delta[] + actions[]</code>. Batch runs emit deltas (ADD / UPDATE / SUPERSEDE / NOOP, each citing evidence events) and no external actions; fast runs emit at most one idempotent action plus a minimal delta. The harness, not the model, validates and applies.</p></div></div>
+  <div class="row"><div class="k">Q4</div><div class="qq"><p>How do we evaluate the whole thing?</p></div><div class="a"><p>Four independent studies with ground truth that does not require urgency labels: <b>E1</b> routing under a budget (injected anomalies + weakly-supervised labels; VUS-PR, affiliation, precision@budget), <b>E2</b> state fidelity against facts re-derivable from the log ("status as of T", links, touched files), <b>E3</b> action quality with the context varied and the agent fixed, against real human actions, <b>E4</b> open-loop throughput and tail latency under bursts with the LLM mocked, plus agent-runs per 1,000 events.</p></div></div>
+</div>
+<p class="small">Numbers in brackets link to the unified reference list. Items the researchers could not fully verify are marked there.</p>
+
+<!-- ============================ Q0 ============================ -->
+<section id="q0">
+<h2><span class="q">Question 0 · responsibility and timing</span>Is storing and aggregating events the context engine's job?</h2>
+
+<div class="verdict"><div class="lbl">Verdict</div><p>Yes. The engine should keep the raw event log as source of truth and maintain <em>precomputed per-entity state</em> from it; the agent gets that state plus bounded tools back into the log. The batch lane is the write path that builds state; the fast lane is the read path that acts on it. This is what every deployed memory system does, what Confluent's product does with SQL, and what the streaming literature calls a materialized view over a changelog.</p></div>
+
+<h3>What the memory systems actually do</h3>
+<p>Every production-oriented agent memory system writes state <em>incrementally</em> per event or message and reads it cheaply at query time; none reconstructs state from a raw log at inference. MemGPT keeps a fixed working context plus a FIFO tail and, at a capacity threshold, folds evicted messages into a recursive summary while keeping them retrievable by tool call<span class="cite"><a href="#r1">[1]</a></span>. Mem0 extracts facts on every message pair, reconciles each against existing memories with ADD/UPDATE/DELETE/NOOP, and refreshes a rolling summary <em>asynchronously</em> off the hot path — reporting 91 % lower p95 latency and &gt;90 % fewer tokens than full-context, at a measured cost of about six points of judged accuracy<span class="cite"><a href="#r2">[2]</a></span>. Zep/Graphiti ingests into a bi-temporal graph where contradicted facts are invalidated rather than deleted, and needs periodic community refreshes because incremental updates drift<span class="cite"><a href="#r3">[3]</a></span>. A-MEM lets each new memory trigger rewrites of older ones<span class="cite"><a href="#r4">[4]</a></span>; Generative Agents keep the raw stream and fire reflection when the summed importance of recent events crosses a threshold<span class="cite"><a href="#r5">[5]</a></span>. Index-time aggregation in RAG tells the same story: GraphRAG pregenerates community summaries<span class="cite"><a href="#r7">[7]</a></span>, RAPTOR builds summary trees<span class="cite"><a href="#r8">[8]</a></span>, and HippoRAG's offline graph plus one retrieval step matches iterative agentic retrieval at 10–30× lower cost<span class="cite"><a href="#r9">[9]</a></span>. Sleep-time compute quantifies the principle: pre-thinking over a context before queries arrive gives ~5× lower test-time compute at equal accuracy, and the benefit grows with query predictability<span class="cite"><a href="#r13">[13]</a></span>.</p>
+
+<p>The 2025 memory survey draws the line the thesis needs: memory "dynamically forms, consolidates, and forgets", whereas RAG re-retrieves from a static store<span class="cite"><a href="#r11">[11]</a></span>. Karpathy's LLM-wiki pattern says the same thing operationally — with RAG "the LLM is rediscovering knowledge from scratch on every question. There's no accumulation" — and structures it as immutable raw sources, an LLM-maintained wiki, and a periodic <em>lint</em> pass<span class="cite"><a href="#r18">[18]</a></span>.</p>
+
+<h3>Industry has converged on the same shape, without the LLM</h3>
+<p>Confluent's Real-Time Context Engine "continuously materializes enriched enterprise data sets into a fast, in-memory cache" via Flink and serves them over MCP; its stated argument against query-time raw access is that raw data is "littered with cryptic codes and IDs no human or AI can interpret" and that querying source systems at inference exposes them to load<span class="cite"><a href="#r20">[20]</a></span>. The May 2026 GA describes the data model plainly: keyed row lookup by primary key, now with filters and ranges<span class="cite"><a href="#r21">[21]</a></span>. Materialize frames the same idea as "an always-current model of relevant business entities" delivered by incremental view maintenance<span class="cite"><a href="#r25">[25]</a><a href="#r26">[26]</a></span>. Both are fixed-schema SQL views; neither has an LLM maintain the state.</p>
+
+<h3>The theory: a table is a folded stream</h3>
+<p>Stream–table duality says a table is the aggregation of a changelog and a stream is the changelog of a table; a KTable is "a continuously updated materialized view"<span class="cite"><a href="#r40">[40]</a></span>. Kreps' Kappa argument gives the disposability property: keep the log, derive tables with one stream job, replay when logic changes<span class="cite"><a href="#r39">[39]</a></span>. The Dataflow model supplies the vocabulary for <em>when</em>: windowing decides <em>where</em> in event time, triggers decide <em>when</em> to emit, and refinement mode (discarding / accumulating / accumulating-and-retracting) decides how repeated emissions relate; session windows are per-key, unaligned, gap-merged<span class="cite"><a href="#r41">[41]</a></span>. Flink implements exactly this with keyed session windows, event-time triggers and allowed lateness<span class="cite"><a href="#r42">[42]</a></span>.</p>
+
+<h3>So: when should aggregation happen?</h3>
+<div class="tablewrap"><table>
+<tr><th>Trigger</th><th>Streaming name</th><th>Memory-system precedent</th><th>Use in the engine</th></tr>
+<tr><td>Per-entity window close</td><td>Watermark / session-gap trigger<span class="cite"><a href="#r41">[41]</a></span></td><td>Per-message extraction (Mem0, A-MEM, Graphiti)<span class="cite"><a href="#r2">[2]</a><a href="#r4">[4]</a><a href="#r3">[3]</a></span></td><td><span class="pill batch">BATCH</span> fold: the default write path</td></tr>
+<tr><td>Data-driven early trigger</td><td>Count / punctuation trigger, accumulating mode<span class="cite"><a href="#r41">[41]</a></span></td><td>Importance-sum threshold (Generative Agents)<span class="cite"><a href="#r5">[5]</a></span>; capacity threshold (MemGPT)<span class="cite"><a href="#r1">[1]</a></span></td><td><span class="pill fast">FAST</span> event arrives: do <em>not</em> fold first; hand the agent state-as-of-last-fold + the unfolded tail</td></tr>
+<tr><td>Periodic compaction</td><td>Accumulating-and-retracting refinement<span class="cite"><a href="#r41">[41]</a></span></td><td>Graphiti community refresh<span class="cite"><a href="#r3">[3]</a></span>; wiki "lint"<span class="cite"><a href="#r18">[18]</a></span>; Mem0 async summary<span class="cite"><a href="#r2">[2]</a></span></td><td>Off the hot path; validate before replacing (Slipstream)<span class="cite"><a href="#r64">[64]</a></span></td></tr>
+</table></div>
+<p>The hybrid "state as of last fold + unfolded tail" has direct precedent: it is MemGPT's recursive summary plus FIFO queue<span class="cite"><a href="#r1">[1]</a></span> and Mem0's asynchronous summary plus last-<i>m</i> messages<span class="cite"><a href="#r2">[2]</a></span>.</p>
+
+<h3>What the literature does <em>not</em> support</h3>
+<ul>
+<li><b>Treating the materialized state as sufficient.</b> Mem0 loses ~6 accuracy points versus reading everything<span class="cite"><a href="#r2">[2]</a></span>; compaction studies from 2026 show summaries silently drop constraints (violations 0 % → 30 %, up to 59 % for some models) unless critical facts are pinned outside the lossy summary<span class="cite"><a href="#r62">[62]</a></span>, destroy causal structure<span class="cite"><a href="#r63">[63]</a></span>, and weaken recent-interaction influence<span class="cite"><a href="#r65">[65]</a></span>. Hence the raw log must remain reachable through tools.</li>
+<li><b>Synchronous compaction on the hot path.</b> Slipstream shows synchronous summarisation "silently introduces errors because the summarizer lacks visibility into what information the agent will need downstream"; asynchronous, validated compaction is +8.8 pp accuracy and up to 39.7 % lower latency<span class="cite"><a href="#r64">[64]</a></span>.</li>
+<li><b>Incremental-only maintenance forever.</b> Graphiti and the wiki pattern both require a periodic full pass to correct drift<span class="cite"><a href="#r3">[3]</a><a href="#r18">[18]</a></span>; a 12-system study finds "localized maintenance is more cost-efficient than global reorganization", which argues for per-entity folds with rare global passes<span class="cite"><a href="#r17">[17]</a></span>.</li>
+<li><b>Unbounded agentic retrieval.</b> It is more accurate (Search-R1 +20–41 % over single-shot RAG) but multiplies tokens 4–15×<span class="cite"><a href="#r56">[56]</a></span>; tools should be keyed lookups and time-range scans, not open search.</li>
+<li><b>Dumping raw histories into context.</b> Position and length effects degrade accuracy non-uniformly even for long-context models<span class="cite"><a href="#r45">[45]</a><a href="#r48">[48]</a></span>.</li>
+</ul>
+<div class="note"><p><b>The gap you can fill.</b> There is no controlled study comparing LLM-maintained per-entity state against agent-driven warehouse queries on a heterogeneous enterprise event stream. The nearest evidence is Letta's file-system agent beating Mem0's graph on LoCoMo (74.0 vs 68.5 with GPT-4o-mini)<span class="cite"><a href="#r14">[14]</a></span> and a July 2026 study finding that filesystem-memory organisation "erodes for all but the strongest management agent"<span class="cite"><a href="#r16">[16]</a></span>.</p></div>
+</section>
+
+<!-- ============================ Q1 ============================ -->
+<section id="q1">
+<h2><span class="q">Question 1 · routing</span>Which events go to the fast lane, and how does the decision work?</h2>
+
+<div class="verdict"><div class="lbl">Verdict</div><p>Route by <em>expected cost of delay</em>, under a fixed budget. A per-source rules floor captures the known-costly types; a per-entity deviation score with an absolute-volume floor captures the unexpected. Ground truth for "urgent" does not exist and priority fields are too noisy to stand in for it, so the budget — not classifier accuracy — is the primary safety control.</p></div>
+
+<h3>The theory behind "cost of delay"</h3>
+<p>The formal antecedent is Horvitz, Jacobs and Hovel's <em>Attention-Sensitive Alerting</em>: a decision-theoretic mediator that balances "the context-sensitive costs of deferring alerts with the cost of interruption", prioritising by the expected cost of delayed action rather than by topic<span class="cite"><a href="#r75">[75]</a></span>. The mixed-initiative principles make it a threshold decision: act only when the probability of need exceeds a threshold set by the relative costs of false action and inaction<span class="cite"><a href="#r76">[76]</a></span>. <em>Bounded deferral</em> is the batch lane: defer non-urgent items for a bounded time "in return for bounded delays in receiving information"<span class="cite"><a href="#r77">[77]</a></span>. Interruption-cost studies justify scarcity — badly timed interruptions raise frustration and reaction time; deferring to breakpoints reduces both<span class="cite"><a href="#r78">[78]</a><a href="#r79">[79]</a></span>. Reinertsen supplies the economic framing of queue prioritisation by cost of delay<span class="cite"><a href="#r80">[80]</a></span>. On the operations side, the SRE book requires a page to be "urgent, actionable, and actively or imminently user-visible" and warns fatigue sets in after a few pages a day<span class="cite"><a href="#r81">[81]</a></span>; the SRE Workbook's multi-window, multi-burn-rate alert is the best-engineered budgeted-urgency scheme in practice and a direct template for the second layer<span class="cite"><a href="#r82">[82]</a></span>. No peer-reviewed paper literally ranks operational alerts by cost of delay; say so rather than citing blog posts.</p>
+
+<h3>Layer 1 — the rules floor</h3>
+<p>DAGOR at WeChat is the closest industrial analogue to a compound priority: a business priority by action type plus a per-user priority from a rotating hash, with the admission level adjusted in ~5 % steps and propagated upstream<span class="cite"><a href="#r96">[96]</a></span>. Aurora's load shedding distinguishes random from <em>semantic</em> (value-based) drops<span class="cite"><a href="#r100">[100]</a></span> — the rules floor is a semantic admitter in that vocabulary. Kafka has no native priority; Confluent's guidance and KIP-349 explain why separate topics are the pattern and why strict priority starves the lower lane, which a fixed budget avoids<span class="cite"><a href="#r101">[101]</a><a href="#r102">[102]</a></span>.</p>
+
+<h3>Layer 2 — per-entity deviation</h3>
+<p>Cloudflare's production alerting fires at |z| &gt; 3.5 over a 5-minute window against the past 4 hours, but only with more than 200 events — because low-volume entities make "any non-zero spike calculate as infinite standard deviations away"<span class="cite"><a href="#r83">[83]</a><a href="#r84">[84]</a></span>. Its bot platform fits per-site baselines with HBOS for linear-time scoring<span class="cite"><a href="#r85">[85]</a></span>, and Radar's outage detector adds a magnitude floor and two thresholds (sustained vs point)<span class="cite"><a href="#r86">[86]</a></span>. HBOS itself "performs poor on local outlier problems"<span class="cite"><a href="#r87">[87]</a></span>, and ECOD/COPOD are likewise global-tail methods<span class="cite"><a href="#r91">[91]</a></span>, so scoring must be per entity or on entity-normalised features — Chandola et al.'s contextual-anomaly distinction, with entity and time as the context attributes<span class="cite"><a href="#r95">[95]</a></span>. Use MAD over standard deviation because the baseline window contains the spikes being detected<span class="cite"><a href="#r94">[94]</a></span>. Streaming detectors with bounded false-positive rates are attractive for a budgeted lane: ADWIN adapts its window with guarantees on both error rates<span class="cite"><a href="#r92">[92]</a></span>; Half-Space Trees and RRCF are the standard constant-memory streaming scorers<span class="cite"><a href="#r88">[88]</a><a href="#r89">[89]</a></span>.</p>
+
+<div class="flow">
+  <div class="l"><b>event e on entity k</b><span>features: inter-arrival gap, type-mix shift, actor novelty, money/priority fields — ratios, not raw counts</span></div>
+  <div class="l fast"><b>layer 1</b><span>rules(source, e) → FAST  (declared Blocker/Critical, dispute ≥ N, @oncall, …)</span></div>
+  <div class="l fast"><b>layer 2</b><span>robust-z_k(e) &gt; θ_source  AND  volume_k ≥ floor  AND  short-window ∧ long-window both cross → FAST</span></div>
+  <div class="l batch"><b>otherwise</b><span>append to session window(k); fold at gap / count / max-age</span></div>
+  <div class="l"><b>budget guard</b><span>if FAST admission rate over the last hour &gt; budget: raise θ (or shed lowest-score admissions); log the excess for offline review</span></div>
+</div>
+
+<h3>How good can it be, and why labels will not tell you</h3>
+<p>Classical severity/priority prediction reaches precision/recall around 0.65–0.75 on Mozilla/Eclipse<span class="cite"><a href="#r107">[107]</a></span>; DRONE's multi-factor model improves relative F-measure substantially but absolute performance on rare high-priority classes stays modest<span class="cite"><a href="#r106">[106]</a></span>. Escalation prediction at IBM reached 79.9 % recall on 2.5 M tickets<span class="cite"><a href="#r108">[108]</a></span>; TickIt deploys LLM escalation at ByteDance without published accuracy<span class="cite"><a href="#r109">[109]</a></span>. The decisive caveat is label noise: about <b>51 % of duplicate bug reports carry inconsistent human-assigned severity</b> even though they describe the same problem<span class="cite"><a href="#r103">[103]</a></span>; 33.8 % of "bug" reports are misclassified<span class="cite"><a href="#r104">[104]</a></span>; and the linked subset of fixes is biased by severity<span class="cite"><a href="#r105">[105]</a></span>. Proactive-agent work reports F1 ≈ 0.66 for the "should I act now" decision<span class="cite"><a href="#r110">[110]</a></span> and 50–65 % zero-shot timing accuracy, +11.8 points with memory<span class="cite"><a href="#r111">[111]</a></span>. Most sobering: a failure-predicting critic with AUROC 0.94 still <em>hurt</em> outcomes when used to trigger interventions — ranking quality does not validate a fast lane; downstream harm must be measured<span class="cite"><a href="#r112">[112]</a></span>.</p>
+
+<h3>Known failure modes to design around</h3>
+<ul>
+<li>Degenerate z-scores on low-volume entities → absolute floor<span class="cite"><a href="#r83">[83]</a></span>.</li>
+<li>Global detectors miss entity-relative anomalies → per-entity or entity-normalised scoring<span class="cite"><a href="#r87">[87]</a><a href="#r95">[95]</a></span>.</li>
+<li>Baseline poisoning by bursts and slow ramps → MAD, capped adaptation, multi-window confirmation<span class="cite"><a href="#r94">[94]</a><a href="#r82">[82]</a></span>.</li>
+<li>Self-amplification: a burst <em>is</em> the anomaly, so the fast lane fills exactly when load peaks → the budget guard plus one deduped "situation" envelope per window; the overload-control analogues are Breakwater's delay-keyed admission<span class="cite"><a href="#r97">[97]</a></span>, SEDA's per-stage controllers<span class="cite"><a href="#r98">[98]</a></span> and brownout's optional-work shedding<span class="cite"><a href="#r99">[99]</a></span>.</li>
+<li>Starvation of the batch lane under strict priority → fixed budget, not strict precedence<span class="cite"><a href="#r102">[102]</a></span>.</li>
+</ul>
+</section>
+
+<!-- ============================ Q2 ============================ -->
+<section id="q2">
+<h2><span class="q">Question 2 · the envelope</span>What is the best context to give the agent?</h2>
+
+<div class="verdict"><div class="lbl">Verdict</div><p>"The smallest set of high-signal tokens that maximize the likelihood of the desired outcome"<span class="cite"><a href="#r51">[51]</a></span>, ordered for primacy/recency and prefix stability, with just-in-time tools for anything beyond it. Give the agent lexical hooks (IDs, stable headings) — state that must be found by <em>meaning</em> degrades with length far faster than state found by <em>string match</em>.</p></div>
+
+<h3>What the context-window studies show</h3>
+<div class="tablewrap"><table>
+<tr><th>Finding</th><th>Evidence</th><th>Design consequence</th></tr>
+<tr><td>Position matters: accuracy is highest at the start and end of the prompt, lowest in the middle</td><td>Lost in the Middle<span class="cite"><a href="#r45">[45]</a></span></td><td>State first, instruction last; recent action log near the end</td></tr>
+<tr><td>Claimed context ≠ usable: only ~half of models claiming ≥32K hold up at 32K; without lexical overlap 11 of 13 models fall below 50 % of their short-context score at 32K</td><td>RULER<span class="cite"><a href="#r46">[46]</a></span>, NoLiMa<span class="cite"><a href="#r47">[47]</a></span></td><td>Keep the reasoning-heavy portion of a run well under 32K; put IDs and stable headings on every fact</td></tr>
+<tr><td>One distractor hurts and they compound; coherent irrelevant text is <em>more</em> distracting than shuffled; a focused prompt beats a 113K-token full history on LongMemEval for every model</td><td>Context Rot, 18 models<span class="cite"><a href="#r48">[48]</a></span></td><td>Do not load <code>superseded.md</code> or full timelines by default; pre-filter to the entity</td></tr>
+<tr><td>Long-context beats RAG when affordable; a per-query router (Self-Route) matches it at a fraction of the cost</td><td>Li et al.<span class="cite"><a href="#r49">[49]</a></span></td><td>Let the run choose the small envelope when the batch's facts are all in OVERVIEW, else load more</td></tr>
+<tr><td>Delivering a task in shards across turns costs 39 % on average; models commit early and cannot recover</td><td>Lost in Multi-Turn<span class="cite"><a href="#r50">[50]</a></span></td><td>Deliver a batch window as one consolidated block, never as replayed turns</td></tr>
+<tr><td>Beyond ~100K tokens agents repeat past actions; more tools reduce tool-selection accuracy</td><td>Breunig, citing Gemini and BFCL results<span class="cite"><a href="#r55">[55]</a></span></td><td>Tool loadout ≤ ~10; compact action log instead of transcript</td></tr>
+</table></div>
+
+<h3>What practitioners converge on</h3>
+<p>Anthropic recommends lightweight identifiers loaded just-in-time, compaction that maximises recall then trims, structured note-taking to persistent files, and sub-agents that return 1–2K-token summaries<span class="cite"><a href="#r51">[51]</a></span>; its harness guidance adds a progress file plus git checkpoints, read first, verify before marking done<span class="cite"><a href="#r58">[58]</a></span>; its tool guidance says return semantically meaningful IDs, paginate, and offer concise/detailed formats<span class="cite"><a href="#r57">[57]</a></span>. Manus reports that KV-cache hit rate is "the single most important metric" for production agents — keep the prefix stable and the context append-only, mask tools rather than remove them, use the filesystem as restorable compression (keep the path, drop the content), and keep failed actions visible<span class="cite"><a href="#r53">[53]</a></span>. LangChain's write/select/compress/isolate taxonomy warns summarisation is risky "when specific events or decisions need to be captured"<span class="cite"><a href="#r54">[54]</a></span>. Claude Code's own memory docs cap files at ~200 lines because "longer files consume more context and reduce adherence"<span class="cite"><a href="#r60">[60]</a></span>.</p>
+
+<h3>Recommended envelopes</h3>
+<div class="two">
+<div class="card fast"><h3><span class="pill fast">FAST</span> one urgent event, latency-bound</h3>
+<p><b>Budget:</b> ≤ 8–12K tokens total.</p>
+<ol>
+<li>Static prefix: role, lane, tool docs, output schema — byte-identical across runs<span class="cite"><a href="#r53">[53]</a></span></li>
+<li><code>OVERVIEW.md</code> in full (≤ 200 lines)<span class="cite"><a href="#r60">[60]</a></span></li>
+<li>Last ~20 lines of <code>timeline.md</code> + the <em>unfolded tail</em> events since the last fold<span class="cite"><a href="#r1">[1]</a></span></li>
+<li>Top-k (≤ 10) <code>facts.md</code> entries matched to the event, retrieval-before-decision as in Mem0<span class="cite"><a href="#r2">[2]</a></span></li>
+<li>Last 5–10 entries of the agent's own action log with idempotency keys<span class="cite"><a href="#r68">[68]</a><a href="#r73">[73]</a></span></li>
+<li>The triggering event verbatim; the instruction last<span class="cite"><a href="#r45">[45]</a></span></li>
+</ol>
+<p><b>Tools:</b> <code>read_state(path, range)</code>, <code>search_facts(q)</code>, <code>recent_events(entity, n)</code>, <code>act(action, key)</code>. <b>Exclude:</b> superseded entries, full timeline, unused tools<span class="cite"><a href="#r48">[48]</a><a href="#r55">[55]</a></span>.</p></div>
+<div class="card batch"><h3><span class="pill batch">BATCH</span> fold a window into state</h3>
+<p><b>Budget:</b> 30–60K tokens; keep the reasoning-heavy block under ~32K<span class="cite"><a href="#r46">[46]</a><a href="#r47">[47]</a></span>.</p>
+<ol>
+<li>Same static prefix</li>
+<li>All state files, with <code>modified</code> timestamps so currency is visible<span class="cite"><a href="#r60">[60]</a></span> — the fold must detect conflicts, so all of <code>facts.md</code> is in</li>
+<li>A <code>superseded.md</code> <em>index</em> (IDs + one line), not bodies</li>
+<li>The previous run's delta summary as the episodic anchor<span class="cite"><a href="#r71">[71]</a><a href="#r72">[72]</a></span></li>
+<li>The event window as <em>one</em> consolidated block<span class="cite"><a href="#r50">[50]</a></span>; if &gt; ~200 events, chunk by entity into sub-agents returning 1–2K-token deltas<span class="cite"><a href="#r51">[51]</a><a href="#r56">[56]</a></span></li>
+<li>Instruction last</li>
+</ol>
+<p><b>Tools:</b> read/search only; no external actions. <b>Exclude:</b> raw payloads once summarised — keep an ID and pointer (restorable compression)<span class="cite"><a href="#r53">[53]</a></span>. <b>Pin</b> fields that must never be summarised away (open incidents, SLA state)<span class="cite"><a href="#r62">[62]</a></span>.</p></div>
+</div>
+</section>
+
+<!-- ============================ Q3 ============================ -->
+<section id="q3">
+<h2><span class="q">Question 3 · the contract</span>What does "processing" mean for an AI harness?</h2>
+
+<div class="verdict"><div class="lbl">Verdict</div><p>A run is a function over versioned inputs with a schema-enforced output. Batch runs produce state deltas; fast runs produce at most one idempotent external action plus a minimal delta. Defining it this way is what makes runs evaluable at the operation level and replayable from the log.</p></div>
+
+<h3>Why a typed contract</h3>
+<p>ReAct established the action-observation primitive<span class="cite"><a href="#r67">[67]</a></span>, but the strongest evidence on <em>interface</em> design is SWE-agent's ablations: linting guardrails +3 pp, removing the edit command −7.7 pp, summarised search results +6 pp over iterative browsing, a 100-line window beating both 30 lines and whole files, collapsing all but the last five observations +3 pp — overall 18 % vs 11 % for a raw shell<span class="cite"><a href="#r68">[68]</a></span>. The lesson: few, compact, consolidated actions; concise feedback; validation at the boundary. Both major APIs now enforce schema-valid output and strict tool arguments<span class="cite"><a href="#r70">[70]</a></span>, so the contract can be enforced by the harness rather than by prompting. AgentBoard's argument for a fine-grained progress rate over binary success<span class="cite"><a href="#r69">[69]</a></span> applies directly: define per-run sub-goals (facts extracted, conflicts resolved, actions emitted).</p>
+
+<h3>The memory-write operation, state of the art</h3>
+<p>The surveys formalise write / manage / read operations<span class="cite"><a href="#r10">[10]</a><a href="#r11">[11]</a></span>. The most operational write definition is Mem0's: extract candidates from summary + recent window + current input, retrieve the top-10 similar memories, then choose <b>ADD / UPDATE / DELETE / NOOP</b>, with contradiction handled by DELETE<span class="cite"><a href="#r2">[2]</a></span>. MemGPT makes the write an explicit tool call<span class="cite"><a href="#r1">[1]</a></span>; A-MEM lets new memories rewrite old attributes<span class="cite"><a href="#r4">[4]</a></span>; Graphiti invalidates rather than deletes<span class="cite"><a href="#r3">[3]</a></span>; the wiki pattern keeps raw sources immutable and flags contradictions<span class="cite"><a href="#r18">[18]</a></span>. A tombstone log (<code>superseded.md</code>) sits in the append-only camp and is defensible on auditability — provided it is not loaded by default<span class="cite"><a href="#r48">[48]</a></span>.</p>
+
+<pre><code>RunInput  { lane: FAST | BATCH, entity_id, state_version,
+            state: { overview, timeline_tail, facts[], superseded_index[] },
+            events[]: { event_id, ts, type, payload_ref },
+            action_log_tail[]: { action_id, idempotency_key, status, ts },
+            budget: { max_tokens, max_tool_calls } }
+
+Tools     { read_state, search_facts, recent_events,
+            act(action, idempotency_key)          // FAST only }
+
+RunOutput { processed_event_ids[],
+            state_delta[]: { op: ADD | UPDATE | SUPERSEDE | NOOP,
+                             file, target_fact_id?, content,
+                             evidence_event_ids[], confidence },
+            actions[]:     { type, params, idempotency_key,
+                             precondition, postcondition },
+            open_questions[], summary (≤ 300 tokens) }</code></pre>
+
+<ul>
+<li><b>Every delta cites <code>evidence_event_ids</code></b> — this is what makes E2 gradable per operation and lets a reviewer trace any fact to the log<span class="cite"><a href="#r18">[18]</a></span>.</li>
+<li><b>The harness applies the delta</b> after a linter-style validator (schema, referenced IDs exist, no duplicate keys); rejected deltas return concise errors for one retry<span class="cite"><a href="#r68">[68]</a></span>.</li>
+<li><b>Idempotency.</b> <code>(entity_id, event_id)</code> processed-marks are committed atomically with the delta; the <code>act</code> tool dedupes on key and verifies postconditions before any retry — verified tool calls significantly reduce duplicate actions at equal task success<span class="cite"><a href="#r73">[73]</a></span>. At-least-once delivery plus non-deterministic inference means the idempotency check must run <em>before</em> the LLM does<span class="cite"><a href="#r74">[74]</a></span>.</li>
+<li><b>The agent's own history is a distinct memory type.</b> Reflexion's episodic buffer<span class="cite"><a href="#r71">[71]</a></span> and the position that episodic memory is "the missing piece" for long-term agents<span class="cite"><a href="#r72">[72]</a></span> both model prior actions separately from world facts; keep it as a compact action log, not a transcript<span class="cite"><a href="#r55">[55]</a></span>.</li>
+<li><b>Assume interruption.</b> Anthropic's memory-tool protocol ("your context window might be reset at any moment… record progress") is the practical form of the same requirement<span class="cite"><a href="#r61">[61]</a></span>.</li>
+</ul>
+</section>
+
+<!-- ============================ Q4 ============================ -->
+<section id="q4">
+<h2><span class="q">Question 4 · evaluation</span>How do we evaluate the whole problem?</h2>
+
+<div class="verdict"><div class="lbl">Verdict</div><p>Four independent studies, each with ground truth that does not depend on anyone labelling "urgent", each paired on the same replayed stream. The unifying quantity is cost of delay: E1 asks whether high-cost events are admitted, E4 whether they are delivered fast, E2 whether the state they need exists, E3 whether that state changes the outcome.</p></div>
+
+<h3>E1 — Routing: are the right events in the budget?</h3>
+<dl>
+<dt>Ground truth</dt><dd>(a) <b>Injected</b> urgent events synthesised into real replays, controlling point difficulty, relative frequency, clusteredness and feature relevance<span class="cite"><a href="#r121">[121]</a></span> and avoiding the triviality / unrealistic-density / mislabelling flaws documented for existing benchmarks<span class="cite"><a href="#r115">[115]</a><a href="#r118">[118]</a></span> — TSB-UAD builds 10,828 of 13,766 series this way<span class="cite"><a href="#r116">[116]</a></span>. (b) <b>Weak labels</b> fused with a Snorkel-style label model over declared priority, keywords, reporter role, comment bursts and later outcomes (escalated, fixed within 24 h), with each source's accuracy estimated rather than assumed<span class="cite"><a href="#r113">[113]</a></span> — priority is explicitly noisy<span class="cite"><a href="#r103">[103]</a><a href="#r104">[104]</a><a href="#r105">[105]</a></span>.</dd>
+<dt>Metrics</dt><dd>precision@budget and recall@budget at 1 / 2 / 5 %; VUS-PR as the threshold-free headline<span class="cite"><a href="#r117">[117]</a></span>; affiliation precision/recall for per-incident lateness<span class="cite"><a href="#r119">[119]</a></span>; NAB early-detection score under the reward-low-FN profile<span class="cite"><a href="#r114">[114]</a></span>; median and p95 detection delay. <b>Never point-adjusted F1</b> — it makes random scores look state-of-the-art<span class="cite"><a href="#r120">[120]</a></span>.</dd>
+<dt>Baselines</dt><dd>random-at-budget, rules-only, recency-only, global (non-entity) z-score, always-fast. Report per source, never pooled<span class="cite"><a href="#r115">[115]</a></span>. Rules will win on declared labels by construction; the deviation layer is evaluated on what rules <em>miss</em>.</dd>
+<dt>Beyond ranking</dt><dd>Because an accurate trigger can still cause harm<span class="cite"><a href="#r112">[112]</a></span>, pair E1 with E3: for fast-routed events, does acting now versus at window close change the outcome?</dd>
+</dl>
+
+<h3>E2 — State fidelity: does the batch lane build correct context?</h3>
+<dl>
+<dt>Ground truth</dt><dd>Facts re-derivable from the log itself. From the Public Jira dataset's 32 M changelog entries: "status / assignee / priority of ticket N as of T", duplicate-of and blocks links<span class="cite"><a href="#r155">[155]</a></span>. From Git/GitHub: files touched by the fixing commit, ticket↔commit links from the mandated key in commit messages<span class="cite"><a href="#r132">[132]</a><a href="#r134">[134]</a></span>.</dd>
+<dt>Probe types</dt><dd>Mirror LongMemEval's five abilities — extraction, multi-session reasoning, temporal reasoning, knowledge update, abstention<span class="cite"><a href="#r12">[12]</a></span> — with TimeQA-style time-conditioned questions<span class="cite"><a href="#r126">[126]</a><a href="#r127">[127]</a></span>. The knowledge-update and temporal categories are the direct analogue of supersession correctness; Zep argues these are the enterprise-relevant tests<span class="cite"><a href="#r3">[3]</a></span>.</dd>
+<dt>Grading</dt><dd>Decompose gold into atomic claims; RAGAS context precision / recall at the claim level<span class="cite"><a href="#r128">[128]</a></span>; for file sets, ContextBench's context recall / precision / efficiency<span class="cite"><a href="#r125">[125]</a></span> and Agentless's superset rule<span class="cite"><a href="#r132">[132]</a></span>; token-F1 with normalisation for short answers as in LoCoMo<span class="cite"><a href="#r122">[122]</a></span>. Add staleness (event time → first snapshot reflecting it), tokens per entity, and tool-call rate per run (a high rate means the state is bad). MemoryAgentBench's <em>selective forgetting</em> and MemBench's efficiency/capacity axes are the secondary dimensions<span class="cite"><a href="#r124">[124]</a><a href="#r123">[123]</a></span>.</dd>
+<dt>Baselines</dt><dd>raw last-<i>N</i> events; BM25 and embedding retrieval over raw events (same read agent, same budget); an uncurated dump (one file per event). Sanity floors: retrieve-everything and retrieve-nothing.</dd>
+</dl>
+
+<h3>E3 — Action quality: does the context change what the agent does?</h3>
+<dl>
+<dt>Design</dt><dd>Fixed agent and prompt; vary only the context: {none, raw last-<i>N</i>, curated state, curated state + tools}. This is the standard fixed-agent ablation used by Mem0, Zep and SWE-agent<span class="cite"><a href="#r2">[2]</a><a href="#r3">[3]</a><a href="#r68">[68]</a></span>.</dd>
+<dt>Gold actions</dt><dd>Software: assignee@k precision/recall<span class="cite"><a href="#r129">[129]</a></span>, component prediction, duplicate recall-rate@k / MAP<span class="cite"><a href="#r131">[131]</a><a href="#r130">[130]</a></span>, file-localisation superset accuracy<span class="cite"><a href="#r132">[132]</a></span>, and — where a grader exists — SWE-bench-style FAIL_TO_PASS on a small SWE-bench-Live slice<span class="cite"><a href="#r133">[133]</a><a href="#r134">[134]</a></span>. Support: gold human replies (Customer Support on Twitter, TWEETSUMM; or an owned helpdesk corpus)<span class="cite"><a href="#r135">[135]</a><a href="#r136">[136]</a></span>; τ-bench's state-comparison and pass^k for reliability<span class="cite"><a href="#r137">[137]</a><a href="#r138">[138]</a></span>.</dd>
+<dt>Judges</dt><dd>Only for free-text replies, position-swapped, from a different model family, with Cohen's κ against a ~200-item human subset — judges show position, verbosity and leniency bias, and percent-agreement hides scoring gaps<span class="cite"><a href="#r139">[139]</a><a href="#r140">[140]</a><a href="#r141">[141]</a></span>. This is why SWE-bench, Agentless and τ-bench ground success in executable or database state<span class="cite"><a href="#r133">[133]</a><a href="#r132">[132]</a><a href="#r137">[137]</a></span>.</dd>
+</dl>
+
+<h3>E4 — System: throughput and fast-lane latency under burst</h3>
+<dl>
+<dt>Method</dt><dd>Open-loop replay at constant rates with latency measured from the <em>intended</em> send time — the coordinated-omission discipline, where the naïve p99 can be ~200× too optimistic<span class="cite"><a href="#r146">[146]</a></span>. Event-time latency and sustainable throughput as defined by Karimov et al.<span class="cite"><a href="#r142">[142]</a></span>; Theodolite's resource-demand metric ("minimal resources to meet the SLO at load <i>l</i>") swept over event rate <em>and</em> entity cardinality<span class="cite"><a href="#r143">[143]</a><a href="#r144">[144]</a></span>; OMB-style p50/p99/p99.9 reporting<span class="cite"><a href="#r145">[145]</a></span>. Run the pipeline with the LLM <em>mocked</em> so the broker and engine are what is measured — the Yahoo benchmark's mistake was measuring Redis<span class="cite"><a href="#r147">[147]</a></span>.</dd>
+<dt>Bursts</dt><dd>Characterise the real streams with the burstiness parameter B and its finite-size correction, and generate replays with matched B<span class="cite"><a href="#r148">[148]</a><a href="#r149">[149]</a></span>. Include a benign flash crowd (volume up, mix stable → should stay batch) and an anomalous burst (mix shifts → one situation envelope). Plot fast-lane admission rate and urgent-event SLO compliance on one time axis to expose self-amplification.</dd>
+<dt>Economics</dt><dd>With the real harness: agent-runs and tokens per 1,000 events per lane, following LLM-serving reporting norms<span class="cite"><a href="#r150">[150]</a></span>. This is the number that justifies the batch lane: cost scales with windows, not events.</dd>
+</dl>
+
+<h3>Statistics for all four</h3>
+<ul>
+<li>Everything is paired on the same replayed stream: paired differences with <em>clustered</em> standard errors (probes sharing an entity are not independent) and bootstrap CIs; power analysis before fixing probe counts<span class="cite"><a href="#r151">[151]</a><a href="#r153">[153]</a></span>.</li>
+<li>McNemar for binary correctness between two conditions<span class="cite"><a href="#r152">[152]</a></span>.</li>
+<li>Pre-register one primary metric per study; Holm–Bonferroni across secondaries.</li>
+<li>The builder is nondeterministic: ≥ 3 seeds per condition, report pass^k and run-to-run variance of the state itself<span class="cite"><a href="#r137">[137]</a><a href="#r154">[154]</a></span>.</li>
+<li>Label-noise robustness: jitter injected timestamps and flip a fraction of weak labels; show E1 rankings are stable.</li>
+</ul>
+
+<h3>Data with derivable ground truth</h3>
+<div class="tablewrap"><table>
+<tr><th>Source</th><th>What it gives</th><th>Licence / access</th><th>Use</th></tr>
+<tr><td>Public Jira dataset (16 instances, 2.7 M issues, 32 M changelog entries, 1 M links)<span class="cite"><a href="#r155">[155]</a></span></td><td>status/assignee/priority as of T; duplicate/blocks links; comments</td><td>CC BY 4.0</td><td>E1 weak labels, E2 temporal probes, E3 triage gold</td></tr>
+<tr><td>Live Apache JIRA + Git (SPARK: 10,659 fixed bugs, 89.7 % linked to commits)</td><td>fresh post-cutoff window; ticket↔commit↔files</td><td>public; no explicit ASF reuse terms found — prefer the CC-BY snapshot where possible</td><td>E2 localisation, E3 file gold</td></tr>
+<tr><td>SWE-bench-Live (1,319+ post-2024 tasks, Docker per task)<span class="cite"><a href="#r134">[134]</a></span></td><td>gold patch + FAIL_TO_PASS grader</td><td>MIT</td><td>E3 execution-graded slice</td></tr>
+<tr><td>GH Archive<span class="cite"><a href="#r156">[156]</a></span></td><td>15+ event types, hourly, since 2011</td><td>data licence not stated</td><td>E4 burst characterisation, replay volume</td></tr>
+<tr><td>Customer Support on Twitter / TWEETSUMM<span class="cite"><a href="#r135">[135]</a><a href="#r136">[136]</a></span></td><td>gold human replies; summaries</td><td>CC BY-NC-SA 4.0 (reported; confirm on page)</td><td>E3 support replies (no priority field)</td></tr>
+<tr><td>An owned helpdesk corpus (e.g. LiveAgent tickets with human replies and priorities)</td><td>real gold actions, declared priority, per-customer entities</td><td>owner's consent and anonymisation required</td><td>E1 + E3 strongest option if usable</td></tr>
+</table></div>
+</section>
+
+<!-- ============================ PRIOR ART ============================ -->
+<section id="prior">
+<h2><span class="q">Position</span>Prior art and the gap</h2>
+<p>Each component of the design has a neighbour that must be cited; the intersection does not exist. "Open source" alone is not a gap — Flink Agents, Graphiti, Letta, Cognee and Supermemory are open source<span class="cite"><a href="#r24">[24]</a><a href="#r3">[3]</a><a href="#r15">[15]</a><a href="#r32">[32]</a><a href="#r33">[33]</a></span>. Per-entity precomputed state is done with SQL by Confluent and Materialize<span class="cite"><a href="#r21">[21]</a><a href="#r25">[25]</a></span> and with LLM-extracted graphs by Graphiti<span class="cite"><a href="#r3">[3]</a></span>. Event-triggered agents exist in Flink Agents (FLIP-531: "system-triggered", event-driven microservices with state and replayability)<span class="cite"><a href="#r23">[23]</a><a href="#r24">[24]</a></span>, Confluent Streaming Agents<span class="cite"><a href="#r22">[22]</a></span> and StreamNative Orca<span class="cite"><a href="#r28">[28]</a></span> — but all trigger on developer-defined conditions, not an urgency budget. AIOps triage agents (RCACopilot, COMET, Datadog Bits, incident.io) key off pre-labelled alerts and precompute topology/runbooks/history<span class="cite"><a href="#r157">[157]</a><a href="#r158">[158]</a><a href="#r160">[160]</a><a href="#r161">[161]</a></span>; incident.io's backtesting against the eventually-known resolution is the nearest precedent for derivable-ground-truth evaluation<span class="cite"><a href="#r161">[161]</a></span>. Support vendors report self-defined resolution rates with no comparable method<span class="cite"><a href="#r162">[162]</a></span>; Customer 360 is the fixed-schema, identity-resolution version of per-entity state<span class="cite"><a href="#r163">[163]</a></span>.</p>
+
+<div class="tablewrap"><table>
+<tr><th>System</th><th class="c">Open source</th><th class="c">Continuous ingest from external sources</th><th class="c">Per-entity precomputed state</th><th class="c">LLM-maintained</th><th class="c">Urgency / fast lane</th><th class="c">Published eval</th></tr>
+<tr><td>Confluent RT Context Engine<span class="cite"><a href="#r20">[20]</a><a href="#r21">[21]</a></span></td><td class="c">—</td><td class="c">✓</td><td class="c">✓ keyed table</td><td class="c">— (Flink SQL)</td><td class="c">— (pull)</td><td class="c">—</td></tr>
+<tr><td>Confluent Streaming Agents<span class="cite"><a href="#r22">[22]</a></span></td><td class="c">—</td><td class="c">✓</td><td class="c">Flink state</td><td class="c">partly</td><td class="c">event-triggered, no budget</td><td class="c">—</td></tr>
+<tr><td>Apache Flink Agents<span class="cite"><a href="#r23">[23]</a><a href="#r24">[24]</a></span></td><td class="c">✓</td><td class="c">✓</td><td class="c">keyed state</td><td class="c">developer-defined</td><td class="c">event-triggered, no budget</td><td class="c">—</td></tr>
+<tr><td>Materialize<span class="cite"><a href="#r25">[25]</a></span></td><td class="c">BSL</td><td class="c">✓ CDC</td><td class="c">✓ views</td><td class="c">—</td><td class="c">— (pull)</td><td class="c">—</td></tr>
+<tr><td>Timeplus AgentGuard<span class="cite"><a href="#r27">[27]</a></span></td><td class="c">partly</td><td class="c">✓ agent hooks</td><td class="c">per session</td><td class="c">— (SQL rules)</td><td class="c">✓ rule-based hold</td><td class="c">—</td></tr>
+<tr><td>Mem0<span class="cite"><a href="#r2">[2]</a></span></td><td class="c">✓</td><td class="c">— (chat)</td><td class="c">per user</td><td class="c">✓</td><td class="c">—</td><td class="c">LoCoMo</td></tr>
+<tr><td>Zep / Graphiti<span class="cite"><a href="#r3">[3]</a></span></td><td class="c">✓</td><td class="c">✓ episodes</td><td class="c">✓ temporal graph</td><td class="c">✓</td><td class="c">—</td><td class="c">DMR, LongMemEval</td></tr>
+<tr><td>Letta sleep-time / MemFS<span class="cite"><a href="#r15">[15]</a><a href="#r13">[13]</a></span></td><td class="c">✓</td><td class="c">— (chat)</td><td class="c">memory FS</td><td class="c">✓</td><td class="c">—</td><td class="c">reasoning benchmarks</td></tr>
+<tr><td>Cognee / Supermemory<span class="cite"><a href="#r32">[32]</a><a href="#r33">[33]</a></span></td><td class="c">✓</td><td class="c">✓ webhooks</td><td class="c">index / profile</td><td class="c">✓</td><td class="c">—</td><td class="c">self-reported</td></tr>
+<tr><td>RCACopilot / COMET<span class="cite"><a href="#r157">[157]</a><a href="#r158">[158]</a></span></td><td class="c">—</td><td class="c">alerts</td><td class="c">per alert type</td><td class="c">—</td><td class="c">alert-triggered</td><td class="c">✓ accuracy, TTM</td></tr>
+<tr><td>Datadog Bits AI SRE / incident.io<span class="cite"><a href="#r160">[160]</a><a href="#r161">[161]</a></span></td><td class="c">—</td><td class="c">alerts / incidents</td><td class="c">runbooks, topology</td><td class="c">✓ agent</td><td class="c">alert-triggered</td><td class="c">judge + human set; backtests</td></tr>
+<tr><td>Intercom Fin / Zendesk<span class="cite"><a href="#r162">[162]</a></span></td><td class="c">—</td><td class="c">chat + connectors</td><td class="c">—</td><td class="c">✓</td><td class="c">—</td><td class="c">vendor resolution rate</td></tr>
+<tr><td><b>This thesis</b></td><td class="c">✓</td><td class="c">✓</td><td class="c">✓ markdown per entity</td><td class="c">✓</td><td class="c">✓ label-free, budgeted</td><td class="c">derivable ground truth</td></tr>
+</table></div>
+
+<div class="verdict"><div class="lbl">Gap statement</div><p>No prior work (a) has an agent harness fold windowed, heterogeneous business events keyed by entity into a human-readable versioned state document with the <em>stream</em> as the trigger; (b) feeds an agent through a label-free, explicitly budgeted urgency lane; or (c) evaluates the fidelity of LLM-maintained per-entity state against ground truth re-derived from the same log. Each part has a neighbour; the intersection, in one open-source system with that evaluation, is the contribution.</p></div>
+</section>
+
+<!-- ============================ PITFALLS ============================ -->
+<section id="pitfalls">
+<h2><span class="q">Checklist</span>Pitfalls the literature warns about</h2>
+<ol>
+<li>Point-adjusted F1 inflates anomaly-detection scores to the point where random beats real<span class="cite"><a href="#r120">[120]</a></span>.</li>
+<li>Trivial or dense injected anomalies, and pooled reporting across series<span class="cite"><a href="#r115">[115]</a></span>.</li>
+<li>Priority/severity as ground truth: 33.8 % misclassified reports; 51 % inconsistent severities on duplicates<span class="cite"><a href="#r104">[104]</a><a href="#r103">[103]</a></span>.</li>
+<li>Ticket↔commit link bias: the linked subset is not representative<span class="cite"><a href="#r105">[105]</a></span>.</li>
+<li>A good trigger can still cause harm — measure downstream effect, not just ranking<span class="cite"><a href="#r112">[112]</a></span>.</li>
+<li>Judge position, verbosity and leniency bias; percent-agreement hides gaps — use κ<span class="cite"><a href="#r139">[139]</a><a href="#r140">[140]</a><a href="#r141">[141]</a></span>.</li>
+<li>Coordinated omission in latency measurement<span class="cite"><a href="#r146">[146]</a></span>; measuring the broker instead of the engine<span class="cite"><a href="#r147">[147]</a></span>.</li>
+<li>Single-run pass@1 hiding run-to-run variance of a nondeterministic builder<span class="cite"><a href="#r137">[137]</a><a href="#r154">[154]</a></span>.</li>
+<li>Recall-over-precision context bloat — agents over-retrieve<span class="cite"><a href="#r125">[125]</a></span>; it is the direct cause of token waste.</li>
+<li>Unclustered standard errors when probes share an entity<span class="cite"><a href="#r151">[151]</a></span>.</li>
+<li>Compaction silently dropping constraints and causal structure<span class="cite"><a href="#r62">[62]</a><a href="#r63">[63]</a></span>; synchronous compaction on the hot path<span class="cite"><a href="#r64">[64]</a></span>.</li>
+<li>Filesystem-memory organisation eroding under weaker management agents<span class="cite"><a href="#r16">[16]</a></span> — report state health over time, not only at the end.</li>
+</ol>
+</section>
+
+<!-- ============================ REFERENCES ============================ -->
+<section id="refs" class="refs">
+<h2><span class="q">Bibliography</span>References</h2>
+<p class="small">Every entry was opened and checked by the research pass that produced it (arXiv abstract page, publisher page, or official post). Entries marked <em>(partly verified)</em> have a detail — venue, licence, or body text — that could not be confirmed.</p>
+
+<div class="h">Agent memory and precomputed state</div>
+<ol start="1">
+<li id="r1">Packer, C., Wooders, S., Lin, K., Fang, V., Patil, S.G., Stoica, I., Gonzalez, J.E. MemGPT: Towards LLMs as Operating Systems. arXiv:2310.08560, 2023.</li>
+<li id="r2">Chhikara, P., Khant, D., Aryan, S., Singh, T., Yadav, D. Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory. arXiv:2504.19413, 2025.</li>
+<li id="r3">Rasmussen, P., Paliychuk, P., Beauvais, T., Ryan, J., Chalef, D. Zep: A Temporal Knowledge Graph Architecture for Agent Memory. arXiv:2501.13956, 2025. Code: github.com/getzep/graphiti (Apache-2.0).</li>
+<li id="r4">Xu, W., Liang, Z., Mei, K., Gao, H., Tan, J., Zhang, Y. A-MEM: Agentic Memory for LLM Agents. NeurIPS 2025. arXiv:2502.12110.</li>
+<li id="r5">Park, J.S., O'Brien, J.C., Cai, C.J., Morris, M.R., Liang, P., Bernstein, M.S. Generative Agents: Interactive Simulacra of Human Behavior. UIST 2023. arXiv:2304.03442.</li>
+<li id="r6">Zhong, W., Guo, L., Gao, Q., Ye, H., Wang, Y. MemoryBank: Enhancing Large Language Models with Long-Term Memory. arXiv:2305.10250, 2023.</li>
+<li id="r7">Edge, D., Trinh, H., Cheng, N., et al. From Local to Global: A Graph RAG Approach to Query-Focused Summarization. arXiv:2404.16130, 2024.</li>
+<li id="r8">Sarthi, P., Abdullah, S., Tuli, A., Khanna, S., Goldie, A., Manning, C.D. RAPTOR: Recursive Abstractive Processing for Tree-Organized Retrieval. arXiv:2401.18059, 2024.</li>
+<li id="r9">Gutiérrez, B.J., Shu, Y., Gu, Y., Yasunaga, M., Su, Y. HippoRAG: Neurobiologically Inspired Long-Term Memory for Large Language Models. NeurIPS 2024. arXiv:2405.14831.</li>
+<li id="r10">Zhang, Z., Bo, X., Ma, C., et al. A Survey on the Memory Mechanism of Large Language Model based Agents. arXiv:2404.13501, 2024.</li>
+<li id="r11">Hu, Y., et al. Memory in the Age of AI Agents. arXiv:2512.13564, 2025.</li>
+<li id="r12">Wu, D., Wang, H., Yu, W., Zhang, Y., Chang, K.-W., Yu, D. LongMemEval: Benchmarking Chat Assistants on Long-Term Interactive Memory. ICLR 2025. arXiv:2410.10813.</li>
+<li id="r13">Lin, K., Snell, C., Wang, Y., Packer, C., Wooders, S., Stoica, I., Gonzalez, J.E. Sleep-time Compute: Beyond Inference Scaling at Test-time. arXiv:2504.13171, 2025.</li>
+<li id="r14">Letta. Benchmarking AI Agent Memory: Is a Filesystem All You Need? 12 Aug 2025. letta.com/blog/benchmarking-ai-agent-memory</li>
+<li id="r15">Letta. MemFS and sleep-time agents documentation. docs.letta.com/concepts/memfs; docs.letta.com/guides/agents/sleep-time-agents. Code: github.com/letta-ai/letta (Apache-2.0).</li>
+<li id="r16">Zhou, S., Yu, S., Wei, H., et al. Filesystem-Based Memory for LLM Agents: Organization, Evolution, and Sustainability. arXiv:2607.26637, 2026.</li>
+<li id="r17">Zhou, W., Zhou, X., Han, S., et al. Are We Ready For An Agent-Native Memory System? arXiv:2606.24775, 2026.</li>
+<li id="r18">Karpathy, A. LLM Wiki. GitHub gist, 4 Apr 2026. gist.github.com/karpathy/442a6bf555914893e9891c11519de94f</li>
+<li id="r19">Turso. AgentFS documentation (beta). docs.turso.tech/agentfs/introduction</li>
+</ol>
+
+<div class="h">Streaming context products and event-driven agents</div>
+<ol start="20">
+<li id="r20">Falconer, S. Introducing Real-Time Context Engine. Confluent blog, 29 Oct 2025. confluent.io/blog/introducing-real-time-context-engine-ai/</li>
+<li id="r21">Confluent. New in Confluent Intelligence: Real-Time Context Engine Upgrade. 19 May 2026. confluent.io/blog/2026-q2-confluent-intelligence-update/ (docs body text partly verified)</li>
+<li id="r22">Juneja, M. Introducing Streaming Agents on Confluent Cloud. 19 Aug 2025. confluent.io/blog/introducing-streaming-agents/</li>
+<li id="r23">Falconer, S., Meyers, C., Song, X. FLIP-531: Initiate Flink Agents as a new Sub-Project. Apache Flink wiki, 9 Jun 2025.</li>
+<li id="r24">apache/flink-agents (Apache-2.0); Ververica, "Alibaba Cloud, Ververica, Confluent, and LinkedIn Join Forces…", 15 Oct 2025.</li>
+<li id="r25">Materialize. AI Context Engines. 26 Feb 2026. materialize.com/blog/ai-context-engines-context-engineering-evolution/</li>
+<li id="r26">Stewart, N. AI Agents Need Digital Twins. Materialize, 30 Jun 2025.</li>
+<li id="r27">Tao, G. AI Agents Need Real-Time Guardrails: Timeplus AgentGuard. timeplus.com/post/agentguard-real-time-guardrails (year not shown on page)</li>
+<li id="r28">StreamNative. Introducing Orca (private preview). 30 Sep 2025.</li>
+<li id="r29">Gallego, A. Introducing the Agentic Data Plane. Redpanda, 28 Oct 2025.</li>
+<li id="r30">Waehner, K. The Rise of Kappa Architecture in the Era of Agentic AI and Data Streaming. 8 Jul 2025.</li>
+<li id="r31">Waehner, K. How Apache Kafka and Flink Power Event-Driven Agentic AI in Real Time. 14 Apr 2025.</li>
+<li id="r32">topoteretes/cognee (Apache-2.0); docs.cognee.ai/integrations.</li>
+<li id="r33">supermemoryai/supermemory (MIT); supermemory.ai/docs/connectors/overview.</li>
+<li id="r34">Plastic Labs. Announcing Honcho 3. 26 Jan 2026.</li>
+<li id="r35">Vu, T., et al. FreshLLMs: Refreshing Large Language Models with Search Engine Augmentation. arXiv:2310.03214, 2023.</li>
+<li id="r36">Sankaradas, M., Rajendran, R.K., Chakradhar, S.T. StreamingRAG. arXiv:2501.14101, 2025.</li>
+<li id="r37">Zhu, Y. From Static to Dynamic: A Streaming RAG Approach to Real-time Knowledge Base. arXiv:2508.05662, 2025.</li>
+</ol>
+
+<div class="h">Streaming theory</div>
+<ol start="38">
+<li id="r38">Gupta, A., Mumick, I.S. Maintenance of Materialized Views: Problems, Techniques, and Applications. IEEE Data Engineering Bulletin 18(2), 1995.</li>
+<li id="r39">Kreps, J. Questioning the Lambda Architecture. O'Reilly Radar, 2 Jul 2014.</li>
+<li id="r40">Sax, M.J., Wang, G., Weidlich, M., Freytag, J.-C. Streams and Tables: Two Sides of the Same Coin. BIRTE 2018.</li>
+<li id="r41">Akidau, T., et al. The Dataflow Model: A Practical Approach to Balancing Correctness, Latency, and Cost in Massive-Scale, Unbounded, Out-of-Order Data Processing. PVLDB 8(12), 2015.</li>
+<li id="r42">Apache Flink documentation: Windows. nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/operators/windows/</li>
+<li id="r43">Marz, N., Warren, J. Big Data: Principles and Best Practices of Scalable Realtime Data Systems. Manning, 2015.</li>
+<li id="r44">Chaugule, A. Designing a Production-Ready Kappa Architecture for Timely Data Stream Processing. Uber Engineering, 23 Jan 2020.</li>
+</ol>
+
+<div class="h">Context windows and context engineering</div>
+<ol start="45">
+<li id="r45">Liu, N.F., Lin, K., Hewitt, J., Paranjape, A., Bevilacqua, M., Petroni, F., Liang, P. Lost in the Middle: How Language Models Use Long Contexts. TACL 2024. arXiv:2307.03172.</li>
+<li id="r46">Hsieh, C.-P., et al. RULER: What's the Real Context Size of Your Long-Context Language Models? COLM 2024. arXiv:2404.06654.</li>
+<li id="r47">Modarressi, A., et al. NoLiMa: Long-Context Evaluation Beyond Literal Matching. ICML 2025. arXiv:2502.05167.</li>
+<li id="r48">Hong, K., Troynikov, A., Huber, J. Context Rot: How Increasing Input Tokens Impacts LLM Performance. Chroma Research, 14 Jul 2025.</li>
+<li id="r49">Li, Z., Li, C., Zhang, M., Mei, Q., Bendersky, M. Retrieval Augmented Generation or Long-Context LLMs? A Comprehensive Study and Hybrid Approach. EMNLP 2024 Industry. arXiv:2407.16833.</li>
+<li id="r50">Laban, P., Hayashi, H., Zhou, Y., Neville, J. LLMs Get Lost In Multi-Turn Conversation. arXiv:2505.06120, 2025.</li>
+<li id="r51">Anthropic. Effective context engineering for AI agents. 29 Sep 2025. anthropic.com/engineering/effective-context-engineering-for-ai-agents</li>
+<li id="r52">Schluntz, E., Zhang, B. Building effective agents. Anthropic, 19 Dec 2024.</li>
+<li id="r53">Ji, Y. Context Engineering for AI Agents: Lessons from Building Manus. 18 Jul 2025.</li>
+<li id="r54">LangChain. Context Engineering for Agents. 2 Jul 2025.</li>
+<li id="r55">Breunig, D. How Long Contexts Fail (22 Jun 2025); How to Fix Your Context (26 Jun 2025). dbreunig.com</li>
+<li id="r56">Anthropic. How we built our multi-agent research system. 13 Jun 2025. Also: Jin, B., et al. Search-R1. arXiv:2503.09516, 2025; Singh, A., et al. Agentic RAG survey. arXiv:2501.09136, 2025.</li>
+<li id="r57">Anthropic. Writing effective tools for AI agents — using AI agents. 11 Sep 2025.</li>
+<li id="r58">Anthropic. Effective harnesses for long-running agents. 26 Nov 2025.</li>
+<li id="r59">Anthropic. Introducing Contextual Retrieval. 19 Sep 2024.</li>
+<li id="r60">Anthropic. Claude Code documentation: How Claude remembers your project. code.claude.com/docs/en/memory</li>
+<li id="r61">Anthropic. Claude API documentation: Memory tool. platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool</li>
+<li id="r62">Chen, S. Governance Decay: How Context Compaction Silently Erases Safety Constraints in Long-Horizon LLM Agents. arXiv:2606.22528, 2026.</li>
+<li id="r63">Semenov, A., Dorofeev, S. Beyond Compaction: Structured Context Eviction for Long-Horizon Agents. arXiv:2606.11213, 2026.</li>
+<li id="r64">Chen, Z., Pan, R., Dai, Y., Netravali, R. Slipstream: Trajectory-Grounded Compaction Validation for Long-Horizon Agents. arXiv:2605.08580, 2026.</li>
+<li id="r65">Min, G., Wu, L., Darbari, M., Chen, C., Hong, L. Toward Reliable Context Compression for Long-Horizon Agents. arXiv:2608.06503, 2026.</li>
+<li id="r66">Wang, Q., et al. Recursively Summarizing Enables Long-Term Dialogue Memory in Large Language Models. arXiv:2308.15022, 2023.</li>
+</ol>
+
+<div class="h">Agent interfaces and run contracts</div>
+<ol start="67">
+<li id="r67">Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan, K., Cao, Y. ReAct: Synergizing Reasoning and Acting in Language Models. ICLR 2023. arXiv:2210.03629.</li>
+<li id="r68">Yang, J., Jimenez, C.E., Wettig, A., Lieret, K., Yao, S., Narasimhan, K., Press, O. SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering. arXiv:2405.15793, 2024 (NeurIPS 2024 venue partly verified).</li>
+<li id="r69">Ma, C., et al. AgentBoard: An Analytical Evaluation Board of Multi-turn LLM Agents. NeurIPS 2024. arXiv:2401.13178.</li>
+<li id="r70">Anthropic. Structured outputs; Tool use with Claude (platform.claude.com/docs). OpenAI. Structured Outputs (developers.openai.com/api/docs/guides/structured-outputs).</li>
+<li id="r71">Shinn, N., Cassano, F., Berman, E., Gopinath, A., Narasimhan, K., Yao, S. Reflexion: Language Agents with Verbal Reinforcement Learning. NeurIPS 2023. arXiv:2303.11366.</li>
+<li id="r72">Pink, M., et al. Position: Episodic Memory is the Missing Piece for Long-Term LLM Agents. arXiv:2502.06975, 2025.</li>
+<li id="r73">Mansoor, I.K., Phadke, A., Rana, P. Verified Tool Calls Improve LLM Agent Reliability Under Non-Atomic Failures. arXiv:2608.02645, 2026.</li>
+<li id="r74">Pan, T. The Idempotency Crisis: LLM Agents as Event Stream Consumers. Blog, 19 Apr 2026 (grey literature).</li>
+</ol>
+
+<div class="h">Cost of delay, alerting, anomaly detection, overload control</div>
+<ol start="75">
+<li id="r75">Horvitz, E., Jacobs, A., Hovel, D. Attention-Sensitive Alerting. UAI 1999. arXiv:1301.6707.</li>
+<li id="r76">Horvitz, E. Principles of Mixed-Initiative User Interfaces. CHI 1999.</li>
+<li id="r77">Horvitz, E., Apacible, J., Subramani, M. Balancing Awareness and Interruption: Investigation of Notification Deferral Policies. UM 2005. Also: Achlioptas, D., Horvitz, E. Principles of Bounded Deferral. MSR-TR-2005-87.</li>
+<li id="r78">Adamczyk, P.D., Bailey, B.P. If not now, when? The effects of interruption at different moments within task execution. CHI 2004.</li>
+<li id="r79">Iqbal, S.T., Bailey, B.P. Effects of intelligent notification management on users and their tasks. CHI 2008.</li>
+<li id="r80">Reinertsen, D.G. The Principles of Product Development Flow. Celeritas, 2009.</li>
+<li id="r81">Ewaschuk, R. (ed. Beyer, B.). Monitoring Distributed Systems. In Site Reliability Engineering, O'Reilly 2016, ch. 6.</li>
+<li id="r82">Google. Alerting on SLOs. The Site Reliability Workbook, ch. 5, O'Reilly 2018.</li>
+<li id="r83">Cloudflare. Introducing thresholds in Security Event Alerting: a z-score love story. 30 Aug 2022.</li>
+<li id="r84">Cloudflare Docs. HTTP Traffic Alerts (Traffic Anomalies). developers.cloudflare.com/notifications/reference/traffic-alerts/</li>
+<li id="r85">Cloudflare. Lessons Learned from Scaling Up Cloudflare's Anomaly Detection Platform. 12 Mar 2021.</li>
+<li id="r86">Cloudflare. Gone offline: how Cloudflare Radar detects Internet outages. 26 Sep 2023.</li>
+<li id="r87">Goldstein, M., Dengel, A. Histogram-based Outlier Score (HBOS): A Fast Unsupervised Anomaly Detection Algorithm. KI-2012 Poster and Demo Track.</li>
+<li id="r88">Tan, S.C., Ting, K.M., Liu, T.F. Fast Anomaly Detection for Streaming Data. IJCAI 2011.</li>
+<li id="r89">Guha, S., Mishra, N., Roy, G., Schrijvers, O. Robust Random Cut Forest Based Anomaly Detection on Streams. ICML 2016.</li>
+<li id="r90">Liu, F.T., Ting, K.M., Zhou, Z.-H. Isolation Forest. ICDM 2008.</li>
+<li id="r91">Li, Z., Zhao, Y., Hu, X., Botta, N., Ionescu, C., Chen, G.H. ECOD: Unsupervised Outlier Detection Using Empirical Cumulative Distribution Functions. IEEE TKDE 2022. arXiv:2201.00382. Also COPOD, ICDM 2020, arXiv:2009.09463.</li>
+<li id="r92">Bifet, A., Gavaldà, R. Learning from Time-Changing Data with Adaptive Windowing. SDM 2007.</li>
+<li id="r93">Page, E.S. Continuous Inspection Schemes. Biometrika 41, 1954. Hinkley, D.V. Inference about the change-point from cumulative sum tests. Biometrika 58, 1971.</li>
+<li id="r94">Leys, C., Ley, C., Klein, O., Bernard, P., Licata, L. Detecting outliers: Do not use standard deviation around the mean, use absolute deviation around the median. J. Experimental Social Psychology 49(4), 2013.</li>
+<li id="r95">Chandola, V., Banerjee, A., Kumar, V. Anomaly detection: A survey. ACM Computing Surveys 41(3), 2009.</li>
+<li id="r96">Zhou, H., et al. Overload Control for Scaling WeChat Microservices (DAGOR). ACM SoCC 2018. arXiv:1806.04075.</li>
+<li id="r97">Cho, I., Saeed, A., Fried, J., Park, S.J., Alizadeh, M., Belay, A. Overload Control for µs-scale RPCs with Breakwater. OSDI 2020.</li>
+<li id="r98">Welsh, M., Culler, D., Brewer, E. SEDA: An Architecture for Well-Conditioned, Scalable Internet Services. SOSP 2001.</li>
+<li id="r99">Klein, C., Maggio, M., Årzén, K.-E., Hernández-Rodriguez, F. Brownout: Building More Robust Cloud Applications. ICSE 2014.</li>
+<li id="r100">Tatbul, N., Çetintemel, U., Zdonik, S., Cherniack, M., Stonebraker, M. Load Shedding in a Data Stream Manager. VLDB 2003.</li>
+<li id="r101">Ferreira, R. Implementing Message Prioritization in Apache Kafka. Confluent blog, 10 Sep 2020.</li>
+<li id="r102">Afshartous, N. KIP-349: Priorities for Source Topics. Apache Kafka wiki (Under Vote).</li>
+</ol>
+
+<div class="h">Priority prediction, label noise, proactive agents</div>
+<ol start="103">
+<li id="r103">Tian, Y., Ali, N., Lo, D., Hassan, A.E. On the unreliability of bug severity data. Empirical Software Engineering 21, 2016.</li>
+<li id="r104">Herzig, K., Just, S., Zeller, A. It's Not a Bug, It's a Feature: How Misclassification Impacts Bug Prediction. ICSE 2013.</li>
+<li id="r105">Bird, C., Bachmann, A., Aune, E., Duffy, J., Bernstein, A., Filkov, V., Devanbu, P. Fair and Balanced? Bias in Bug-Fix Datasets. ESEC/FSE 2009.</li>
+<li id="r106">Tian, Y., Lo, D., Xia, X., Sun, C. Automated prediction of bug report priority using multi-factor analysis (DRONE). Empirical Software Engineering 20(5), 2015.</li>
+<li id="r107">Lamkanfi, A., Demeyer, S., Giger, E., Goethals, B. Predicting the severity of a reported bug. MSR 2010. Also Menzies, T., Marcus, A. SEVERIS, ICSM 2008.</li>
+<li id="r108">Montgomery, L., Damian, D. What do Support Analysts Know about Their Customers? Support Ticket Escalation Prediction. IEEE RE 2017. arXiv:1901.01092; extended in Requirements Engineering 23, 2018.</li>
+<li id="r109">Liu, F., et al. TickIt: Leveraging Large Language Models for Automated Ticket Escalation. FSE 2025. arXiv:2504.08475.</li>
+<li id="r110">Lu, Y., et al. Proactive Agent: Shifting LLM Agents from Reactive Responses to Active Assistance. arXiv:2410.12361, 2024. Code: github.com/thunlp/ProactiveAgent (Apache-2.0).</li>
+<li id="r111">Tang, Y., et al. ProAgentBench: Evaluating LLM Agents for Proactive Assistance with Real-World Data. arXiv:2602.04482, 2026.</li>
+<li id="r112">Vasudev, R., Russak, M., Bikel, D., Alshikh, W. Accurate Failure Prediction in Agents Does Not Imply Effective Failure Prevention. arXiv:2602.03338, 2026.</li>
+</ol>
+
+<div class="h">Evaluation methodology and benchmarks</div>
+<ol start="113">
+<li id="r113">Ratner, A., Bach, S.H., Ehrenberg, H., Fries, J., Wu, S., Ré, C. Snorkel: Rapid Training Data Creation with Weak Supervision. PVLDB 11(3), 2017. arXiv:1711.10160.</li>
+<li id="r114">Lavin, A., Ahmad, S. Evaluating Real-time Anomaly Detection Algorithms — the Numenta Anomaly Benchmark. IEEE ICMLA 2015. arXiv:1510.03336.</li>
+<li id="r115">Wu, R., Keogh, E. Current Time Series Anomaly Detection Benchmarks are Flawed and are Creating the Illusion of Progress. IEEE TKDE. arXiv:2009.13807.</li>
+<li id="r116">Paparrizos, J., Kang, Y., Boniol, P., Tsay, R.S., Palpanas, T., Franklin, M.J. TSB-UAD: An End-to-End Benchmark Suite for Univariate Time-Series Anomaly Detection. PVLDB 15(8), 2022.</li>
+<li id="r117">Paparrizos, J., Boniol, P., Palpanas, T., Tsay, R.S., Elmore, A., Franklin, M.J. Volume Under the Surface: A New Accuracy Evaluation Measure for Time-Series Anomaly Detection. PVLDB 15(11), 2022.</li>
+<li id="r118">Liu, Q., Paparrizos, J. The Elephant in the Room: Towards A Reliable Time-Series Anomaly Detection Benchmark (TSB-AD). NeurIPS 2024 Datasets and Benchmarks.</li>
+<li id="r119">Huet, A., Navarro, J.M., Rossi, D. Local Evaluation of Time Series Anomaly Detection Algorithms. KDD 2022. arXiv:2206.13167.</li>
+<li id="r120">Kim, S., Choi, K., Choi, H.-S., Lee, B., Yoon, S. Towards a Rigorous Evaluation of Time-series Anomaly Detection. AAAI 2022. arXiv:2109.05257.</li>
+<li id="r121">Emmott, A., Das, S., Dietterich, T., Fern, A., Wong, W.-K. A Meta-Analysis of the Anomaly Detection Problem. arXiv:1503.01158.</li>
+<li id="r122">Maharana, A., Lee, D.-H., Tulyakov, S., Bansal, M., Barbieri, F., Fang, Y. Evaluating Very Long-Term Conversational Memory of LLM Agents (LoCoMo). arXiv:2402.17753, 2024 (ACL 2024 venue partly verified).</li>
+<li id="r123">Tan, H., et al. MemBench: Towards More Comprehensive Evaluation on the Memory of LLM-based Agents. Findings of ACL 2025. arXiv:2506.21605.</li>
+<li id="r124">Hu, Y., Wang, Y., McAuley, J. Evaluating Memory in LLM Agents via Incremental Multi-Turn Interactions (MemoryAgentBench). arXiv:2507.05257, 2025.</li>
+<li id="r125">Li, Z., et al. ContextBench: A Benchmark for Context Retrieval in Coding Agents. arXiv:2602.05892, 2026. Code: github.com/EuniAI/ContextBench (Apache-2.0).</li>
+<li id="r126">Chen, W., Wang, X., Wang, W.Y. A Dataset for Answering Time-Sensitive Questions (TimeQA). NeurIPS 2021 Datasets and Benchmarks. arXiv:2108.06314.</li>
+<li id="r127">Dhingra, B., et al. Time-Aware Language Models as Temporal Knowledge Bases (TempLAMA). TACL 10, 2022. arXiv:2106.15110.</li>
+<li id="r128">Es, S., James, J., Espinosa-Anke, L., Schockaert, S. RAGAS: Automated Evaluation of Retrieval Augmented Generation. arXiv:2309.15217, 2023; metric definitions at docs.ragas.io.</li>
+<li id="r129">Anvik, J., Hiew, L., Murphy, G.C. Who should fix this bug? ICSE 2006.</li>
+<li id="r130">Runeson, P., Alexandersson, M., Nyholm, O. Detection of Duplicate Defect Reports Using Natural Language Processing. ICSE 2007.</li>
+<li id="r131">Sun, C., Lo, D., Khoo, S.-C., Jiang, J. Towards more accurate retrieval of duplicate bug reports. ASE 2011.</li>
+<li id="r132">Xia, C.S., Deng, Y., Dunn, S., Zhang, L. Agentless: Demystifying LLM-based Software Engineering Agents. arXiv:2407.01489, 2024.</li>
+<li id="r133">Jimenez, C.E., Yang, J., Wettig, A., Yao, S., Pei, K., Press, O., Narasimhan, K. SWE-bench: Can Language Models Resolve Real-World GitHub Issues? ICLR 2024. arXiv:2310.06770.</li>
+<li id="r134">Zhang, L., et al. SWE-bench Goes Live! NeurIPS 2025 Datasets and Benchmarks. arXiv:2505.23419.</li>
+<li id="r135">Axelbrooke, S. / Thought Vector. Customer Support on Twitter. Kaggle, 2017 (licence CC BY-NC-SA 4.0 per secondary sources; partly verified).</li>
+<li id="r136">Feigenblat, G., et al. TWEETSUMM — A Dialog Summarization Dataset for Customer Service. Findings of EMNLP 2021. arXiv:2111.11894.</li>
+<li id="r137">Yao, S., Shinn, N., Razavi, P., Narasimhan, K. τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains. arXiv:2406.12045, 2024.</li>
+<li id="r138">Barres, V., Dong, H., Ray, S., Si, X., Narasimhan, K. τ²-Bench: Evaluating Conversational Agents in a Dual-Control Environment. arXiv:2506.07982, 2025.</li>
+<li id="r139">Zheng, L., et al. Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena. NeurIPS 2023 Datasets and Benchmarks. arXiv:2306.05685.</li>
+<li id="r140">Thakur, A.S., Choudhary, K., Ramayapally, V.S., Vaidyanathan, S., Hupkes, D. Judging the Judges: Evaluating Alignment and Vulnerabilities in LLMs-as-Judges. arXiv:2406.12624.</li>
+<li id="r141">Wang, P., et al. Large Language Models are not Fair Evaluators. arXiv:2305.17926, 2023.</li>
+<li id="r142">Karimov, J., Rabl, T., Katsifodimos, A., Samarev, R., Heiskanen, H., Markl, V. Benchmarking Distributed Stream Data Processing Systems. IEEE ICDE 2018. arXiv:1802.08496.</li>
+<li id="r143">Henning, S., Hasselbring, W. Theodolite: Scalability Benchmarking of Distributed Stream Processing Engines in Microservice Architectures. Big Data Research 25, 2021. arXiv:2009.00304.</li>
+<li id="r144">Henning, S., Hasselbring, W. A configurable method for benchmarking scalability of cloud-native applications. Empirical Software Engineering 27(6), 2022.</li>
+<li id="r145">OpenMessaging Benchmark Framework. openmessaging.cloud/docs/benchmarks/</li>
+<li id="r146">Tene, G. wrk2 README: coordinated omission. github.com/giltene/wrk2</li>
+<li id="r147">Grier, J. Extending the Yahoo! Streaming Benchmark. data Artisans, 2016 (grey literature).</li>
+<li id="r148">Goh, K.-I., Barabási, A.-L. Burstiness and memory in complex systems. EPL 81, 48002, 2008. arXiv:physics/0610233 (journal venue partly verified).</li>
+<li id="r149">Kim, E.-K., Jo, H.-H. Measuring burstiness for finite event sequences. Physical Review E 94, 032311, 2016. arXiv:1604.01125.</li>
+<li id="r150">Kwon, W., et al. Efficient Memory Management for Large Language Model Serving with PagedAttention (vLLM). SOSP 2023. arXiv:2309.06180. Also Agrawal, A., et al. Etalon. arXiv:2407.07000, 2024.</li>
+<li id="r151">Miller, E. Adding Error Bars to Evals: A Statistical Approach to Language Model Evaluations. arXiv:2411.00640, 2024.</li>
+<li id="r152">Dietterich, T.G. Approximate Statistical Tests for Comparing Supervised Classification Learning Algorithms. Neural Computation 10(7), 1998.</li>
+<li id="r153">Koehn, P. Statistical Significance Tests for Machine Translation Evaluation. EMNLP 2004.</li>
+<li id="r154">Khanal, Tao, Zhou. Beyond pass@1: A Reliability Science Framework for Long-Horizon LLM Agents. arXiv:2603.29231, 2026.</li>
+<li id="r155">Montgomery, L., Lüders, C., Maalej, W. An Alternative Issue Tracking Dataset of Public Jira Repositories. MSR 2022. arXiv:2201.08368. CC BY 4.0.</li>
+<li id="r156">GH Archive. gharchive.org (data licence not stated on site).</li>
+</ol>
+
+<div class="h">AIOps, support agents, Customer 360</div>
+<ol start="157">
+<li id="r157">Chen, Y., et al. Automatic Root Cause Analysis via Large Language Models for Cloud Incidents (RCACopilot). EuroSys 2024. arXiv:2305.15778.</li>
+<li id="r158">Wang, Z., et al. Large Language Models Can Provide Accurate and Interpretable Incident Triage (COMET). ISSRE 2024.</li>
+<li id="r159">Hsu, D., et al. Leveraging AI for Efficient Incident Response. Meta Engineering, 24 Jun 2024.</li>
+<li id="r160">Datadog. Introducing Bits Investigation (10 Jun 2025); Shan, D., Ratchford, T. How we built an AI SRE agent (12 Jan 2026).</li>
+<li id="r161">incident.io. AI SRE product page; 2025 talk on backtesting against resolved incidents (secondary summary via ZenML LLMOps database).</li>
+<li id="r162">Intercom. Fin AI Agent outcomes; What's new with Fin 3 (15 Oct 2025); From resolutions to outcomes (12 Mar 2026). Zendesk. Automated resolution rate (2026).</li>
+<li id="r163">Salesforce Trailhead. Implement Data Cloud for Agentforce. Twilio Segment. Identity Resolution documentation. Jaitly, S., et al. xEM: Explainable Entity Matching in Customer 360. arXiv:2212.00342.</li>
+<li id="r164">Bharadwaj, A., Tu, K. Agentic Observability: Automated Alert Triage for Adobe E-Commerce. arXiv:2602.02585, 2026.</li>
+</ol>
+</section>
+</main>
+</div>

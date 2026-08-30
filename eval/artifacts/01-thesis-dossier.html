@@ -1,0 +1,396 @@
+<title>Harnext Thesis Dossier</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --paper:#F6F7F4; --paper-2:#EDEFE9; --ink:#1B211E; --ink-2:#4A534E; --ink-3:#7A847E;
+  --rule:#D7DBD4; --accent:#1F5F9E; --accent-soft:#DCE8F5;
+  --fast:#B8791A; --fast-soft:#F6E8CC; --batch:#1F5F9E; --batch-soft:#DCE8F5;
+  --ok:#2F7A4C; --ok-soft:#DCEEE2; --warn:#A86B12; --warn-soft:#F7E9CF; --bad:#B23A3A; --bad-soft:#F4DADA; --contra:#6E3FA3; --contra-soft:#E8DEF4;
+  --code-bg:#ECEFEA;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#141816; --paper-2:#1C211E; --ink:#E6E9E4; --ink-2:#B3BAB4; --ink-3:#7F8882;
+    --rule:#2C332F; --accent:#7FB0E6; --accent-soft:#1E2E40;
+    --fast:#E0A54A; --fast-soft:#3A2D14; --batch:#7FB0E6; --batch-soft:#1E2E40;
+    --ok:#7CC594; --ok-soft:#1B3324; --warn:#E0B060; --warn-soft:#3A2E14; --bad:#E48A8A; --bad-soft:#3E1F1F; --contra:#B899E0; --contra-soft:#2C2040;
+    --code-bg:#1F2522;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#141816; --paper-2:#1C211E; --ink:#E6E9E4; --ink-2:#B3BAB4; --ink-3:#7F8882;
+  --rule:#2C332F; --accent:#7FB0E6; --accent-soft:#1E2E40;
+  --fast:#E0A54A; --fast-soft:#3A2D14; --batch:#7FB0E6; --batch-soft:#1E2E40;
+  --ok:#7CC594; --ok-soft:#1B3324; --warn:#E0B060; --warn-soft:#3A2E14; --bad:#E48A8A; --bad-soft:#3E1F1F; --contra:#B899E0; --contra-soft:#2C2040;
+  --code-bg:#1F2522;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16.5px;line-height:1.55;margin:0}
+a{color:var(--accent)}
+.shell{display:grid;grid-template-columns:230px minmax(0,1fr);gap:0;max-width:1240px;margin:0 auto}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:36px 20px 36px 28px;border-right:1px solid var(--rule);font-size:13.5px}
+nav.toc .brand{font-family:Literata,Georgia,serif;font-weight:700;font-size:15px;margin-bottom:18px;color:var(--ink)}
+nav.toc a{display:block;color:var(--ink-2);text-decoration:none;padding:5px 0;border-left:2px solid transparent;padding-left:10px;margin-left:-12px}
+nav.toc a:hover,nav.toc a:focus{color:var(--ink);border-left-color:var(--accent);outline:none}
+nav.toc .grp{margin-top:14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+main{padding:40px 48px 96px 56px;min-width:0}
+header.hero{padding-bottom:28px;border-bottom:1px solid var(--rule);margin-bottom:36px}
+.eyebrow{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+h1{font-family:Literata,Georgia,serif;font-weight:700;font-size:40px;line-height:1.1;margin:8px 0 12px;text-wrap:balance;letter-spacing:-.01em}
+h2{font-family:Literata,Georgia,serif;font-weight:600;font-size:26px;line-height:1.2;margin:56px 0 14px;text-wrap:balance;padding-top:8px}
+h3{font-family:Literata,Georgia,serif;font-weight:600;font-size:18.5px;margin:30px 0 8px;text-wrap:balance}
+h4{font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin:22px 0 6px}
+p,li{max-width:70ch}
+p{margin:0 0 12px}
+ul,ol{padding-left:22px;margin:0 0 14px}
+li{margin:0 0 6px}
+.lede{font-size:19px;line-height:1.5;color:var(--ink-2);max-width:66ch}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);padding:14px 16px;border-radius:6px;overflow-x:auto;font-size:13px;line-height:1.5;max-width:100%}
+pre code{background:none;padding:0;font-size:inherit}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0 0}
+.stat{border:1px solid var(--rule);border-radius:6px;padding:14px 16px;background:var(--paper-2)}
+.stat b{display:block;font-family:Literata,Georgia,serif;font-size:30px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.stat span{font-size:12.5px;color:var(--ink-2);display:block;margin-top:6px}
+.stat.ok b{color:var(--ok)}.stat.warn b{color:var(--warn)}.stat.bad b{color:var(--bad)}.stat.contra b{color:var(--contra)}
+.tablewrap{overflow-x:auto;margin:14px 0 20px;border:1px solid var(--rule);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:640px}
+th,td{padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top;text-align:left}
+th{background:var(--paper-2);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+tr:last-child td{border-bottom:none}
+td.num{font-variant-numeric:tabular-nums;text-align:right}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;letter-spacing:.04em;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.part{background:var(--warn-soft);color:var(--warn)}.pill.bad{background:var(--bad-soft);color:var(--bad)}.pill.contra{background:var(--contra-soft);color:var(--contra)}
+.pill.fast{background:var(--fast-soft);color:var(--fast)}.pill.batch{background:var(--batch-soft);color:var(--batch)}
+.callout{border-left:3px solid var(--accent);background:var(--accent-soft);padding:14px 18px;border-radius:0 6px 6px 0;margin:18px 0;max-width:78ch}
+.callout.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.callout.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+.callout p:last-child{margin-bottom:0}
+.pipe{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0 22px;font-size:13.5px}
+.pipe .node{border:1px solid var(--rule);border-radius:5px;padding:7px 11px;background:var(--paper-2);font-family:"JetBrains Mono",monospace;font-size:12.5px}
+.pipe .node.ok{border-color:var(--ok)}.pipe .node.part{border-color:var(--warn);border-style:dashed}.pipe .node.bad{border-color:var(--bad);border-style:dashed;color:var(--ink-3)}
+.pipe .arrow{color:var(--ink-3)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:14px 0 20px}
+.card{border:1px solid var(--rule);border-radius:6px;padding:16px 18px;background:var(--paper-2)}
+.card h3{margin-top:0}
+.card p,.card li{max-width:none}
+.rank{display:grid;grid-template-columns:44px 1fr;gap:14px;margin:0 0 18px;padding-bottom:18px;border-bottom:1px dashed var(--rule)}
+.rank .n{font-family:Literata,Georgia,serif;font-size:30px;font-weight:600;color:var(--accent);line-height:1;padding-top:4px}
+.rank p,.rank li{max-width:74ch}
+.small{font-size:13.5px;color:var(--ink-2)}
+.week{display:grid;grid-template-columns:92px 1fr;gap:14px;padding:10px 0;border-bottom:1px solid var(--rule)}
+.week .w{font-family:"JetBrains Mono",monospace;font-size:12.5px;color:var(--ink-2);padding-top:3px}
+.week p{margin:0;max-width:none}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:0 0 16px;max-width:80ch}
+dt{font-weight:600}
+dd{margin:0}
+.evq{font-family:Literata,Georgia,serif;font-style:italic;font-size:17px;color:var(--ink-2);max-width:70ch;margin:0 0 14px}
+@media (max-width:900px){.shell{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule)}main{padding:28px 20px 72px}.stats{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}h1{font-size:32px}}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+
+<div class="shell">
+<nav class="toc" aria-label="Sections">
+  <div class="brand">Harnext Thesis Dossier</div>
+  <a href="#tldr">Read this first</a>
+  <div class="grp">The proposal</div>
+  <a href="#summary">Proposal on one page</a>
+  <a href="#internal">Internal contradictions</a>
+  <div class="grp">Reality check</div>
+  <a href="#built">Built vs. claimed</a>
+  <a href="#missing">What is missing</a>
+  <div class="grp">The thesis</div>
+  <a href="#novelty">Where the novelty is</a>
+  <a href="#eval">Evaluation you can run</a>
+  <a href="#outline">Draft outline & RQs</a>
+  <a href="#plan">Six-week plan</a>
+  <a href="#reading">Related work to cite</a>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Master's thesis · working dossier · 30 Aug 2026</div>
+  <h1>An agent-curated context store for streaming AI agents</h1>
+  <p class="lede">Everything needed to start the first draft: what the proposal says, what <code>harnext-context-engine</code> actually does, where the two disagree, where the defensible novelty sits, and an evaluation that the code you already have can run.</p>
+  <div class="stats">
+    <div class="stat ok"><b>7</b><span>proposal claims implemented</span></div>
+    <div class="stat warn"><b>3</b><span>partially implemented</span></div>
+    <div class="stat bad"><b>8</b><span>absent (incl. all evaluation)</span></div>
+    <div class="stat contra"><b>3</b><span>contradicted by the shipped design</span></div>
+  </div>
+</header>
+
+<section id="tldr">
+<h2>Read this first: three decisions that unblock the draft</h2>
+<p>The evaluation feels impossible because the repo contains <strong>three evaluation designs that disagree with each other</strong> and none of them matches the implementation. <code>research/evaluation-methodology.md</code> pre-registers seven hypotheses and eleven experiments (VUS-PR, Theodolite demand curves, ContextBench, LongMemEval, push-vs-poll Pareto) on a Flink + Paimon + bitemporal-graph stack that does not exist. <code>proposal.md</code> replaces that with Study 1–3 (SWE-bench-Live, anomaly benchmarks, Apache JIRA) but still lists ProAgentBench as Deliverable 5. <code>research/are-time-aware-evaluation.md</code> then re-operationalises Study 3 as an order-discrepancy score. Nothing is wrong with any single document; the problem is that you have not yet chosen. Choose:</p>
+
+<div class="rank"><div class="n">1</div><div>
+<h3>Make the builder the thesis, not the classifier.</h3>
+<p>The proposal already says "this MCP tool is the thesis deliverable" and the README says "the novel component is the builder". The classifier as implemented is a Welford z-score on inter-arrival gap with a rules stub. Reframe the fast/batch split as an <em>incorporation-cadence</em> knob of the builder (how often the agent folds events into the store), and demote HBOS/anomaly routing to a design discussion plus, at most, one offline notebook experiment.</p>
+</div></div>
+
+<div class="rank"><div class="n">2</div><div>
+<h3>Run one primary study on the SPARK corpus you already have, with deterministic probes.</h3>
+<p>You have 10,659 fixed SPARK bugs, 46,902 commits, an 89.7 % ticket↔commit join with 99.7 % temporal validity. Replay a window through harnext, then ask the MCP <code>context_research</code> tool questions whose answers are known from the data itself: which files, which commits, what status as of when. No JVM build, no test harness, no LLM judge for the headline metric. Details in <a href="#eval">Evaluation you can run</a>.</p>
+</div></div>
+
+<div class="rank"><div class="n">3</div><div>
+<h3>Write the proposal down to what shipped, and name the rest future work.</h3>
+<p>Fork-per-session + optimistic commit, the internal filesystem MCP server, Flink keyed state, Paimon archive, the bitemporal graph + RAG store, the Kafka delivery contract and Python SDK: none of these exist, and a committee will find that in ten minutes with the README. Single-writer-per-org with linear snapshots is a perfectly defensible v1 consistency model — say so, and state its guarantees formally (that alone answers RQ5 open question 1 in your own notes).</p>
+</div></div>
+</section>
+
+<section id="summary">
+<h2>The proposal on one page</h2>
+<dl>
+  <dt>Problem</dt><dd>Agents over high-volume heterogeneous event streams (Slack, JIRA, telemetry) need the right context at the right time, with urgent events surfaced immediately; no open-source reference architecture exists. Confluent's Real-Time Context Engine is the closed-source, pull-only prior art.</dd>
+  <dt>Commitment A</dt><dd>The CMS builds context from the stream using <strong>stateless builder agents</strong>. All long-lived state is a per-org versioned filesystem (AgentFS, SQLite) plus a raw-conversation log. Kafka and the filesystem never cross the CMS boundary.</dd>
+  <dt>Commitment B</dt><dd>The <strong>only external surface is MCP</strong>: <code>context_research</code> (synthesized, cited answer), <code>context_get_urls</code>, <code>context_update</code> (spawns an internal write agent). "Context is a service the CMS synthesizes on request, not a store the caller browses."</dd>
+  <dt>Routing</dt><dd>Each event goes <span class="pill fast">FAST</span> (processed on arrival) or <span class="pill batch">BATCH</span> (window's events at window close). Decision = rules floor <code>OR</code> per-entity HBOS anomaly score past a static per-source threshold, guarded by an absolute-volume floor and multi-window confirmation. No online feedback loop.</dd>
+  <dt>Envelope</dt><dd>CloudEvents 1.0; <code>subject</code> (<code>customer:42</code>, <code>repo:apache/spark</code>) doubles as Kafka partition key and anomaly-state key.</dd>
+  <dt>Delivery</dt><dd>Section "Delivery surface" commits to Kafka-direct <code>(event, context)</code> envelopes on <code>cms.events.{fast,batch}.v1</code> with consumer groups per agent role and a Python SDK. <em>This section predates Commitment B and contradicts it — see below.</em></dd>
+  <dt>Evaluation</dt><dd>Study 1: SWE-bench-Live with the CMS as the agent's only memory, % resolved vs. no-memory and full-dump ablations. Study 2: HBOS + per-entity normalisation vs. global HBOS and streaming-AD baselines on NAB/TSB-AD and the Public Jira dataset. Study 3: live Apache JIRA + Git + PR streams (SPARK), context precision/recall against the fixing commit's files.</dd>
+  <dt>Deliverables</dt><dd>Thesis report; Kafka delivery contract; reference implementation (Redpanda + Flink + Paimon + bitemporal graph + RAG store); Python SDK; ProAgentBench evaluation.</dd>
+</dl>
+</section>
+
+<section id="internal">
+<h2>Contradictions inside the proposal itself</h2>
+<p>These are drafting artefacts from successive refactors (the git log shows the KG → agentic-FS pivot in the last two commits). They must be resolved before the draft, because each one changes what the evaluation measures.</p>
+<div class="tablewrap"><table>
+<tr><th style="width:34%">Where</th><th>Conflict</th><th style="width:30%">Resolve by</th></tr>
+<tr><td>"Proposed architecture" caption vs. "Context Engine — internal architecture"</td><td>Caption still describes a <em>bitemporal graph + RAG store</em>, materialised views, a computed <code>context</code> object per outgoing event. The internal section describes a versioned agentic filesystem and no per-event context object.</td><td>Rewrite the caption and <code>architecture.svg</code> around the FS. Delete "bitemporal graph + RAG store" everywhere except Related Work / Future Work.</td></tr>
+<tr><td>"Delivery surface: Kafka direct" + Deliverables 2, 3, 4 vs. Architectural commitment B</td><td>Kafka-direct delivery of <code>(event, context)</code> envelopes to external agents, consumer groups per role, an SDK — but commitment B says MCP is the <em>only</em> external surface and Kafka is internal.</td><td>Keep Kafka internal. Move the delivery section to Future Work ("push delivery") or cut it. Drop deliverables 2 and 4.</td></tr>
+<tr><td>Deliverable 5 (ProAgentBench) vs. Evaluation §</td><td>ProAgentBench is listed as the empirical evaluation but appears nowhere in Studies 1–3. Its timing-prediction task also measures a proactive <em>agent</em>, not a context store.</td><td>Cut it, or cite only as the burstiness reference (B = 0.787) for the corpus characterisation.</td></tr>
+<tr><td><code>research/evaluation-methodology.md</code> vs. <code>proposal.md</code></td><td>H1–H7 / E1–E11 assume Flink metrics, Paimon replay, bitemporal graph, LongMemEval integration, human annotators. The proposal's Study 1–3 are a different design.</td><td>Archive the note as "exploration". Reuse only: the statistics section (paired bootstrap, McNemar), the VUS-PR/affiliation guidance if Study 2 survives, and the leakage gate.</td></tr>
+<tr><td><code>research/are-time-aware-evaluation.md</code> order axis</td><td>Kendall τ over "file changes by (commit-time, then in-diff order)". Git emits a diff's files in path-sorted order, so within one commit the order carries no information; 83 % of linked fixes are single-commit. The order axis is vacuous for most tickets.</td><td>Keep coverage P/R/F1 at file granularity as the metric. Report order only on the ~17 % multi-commit fixes, or drop it.</td></tr>
+<tr><td>"Study 1 — Why a coding benchmark"</td><td>The agent has the repo checked out at <code>base_commit</code>, so it already has full code + git history. The CMS can only add issue/PR discussion. The "no FS memory" ablation is therefore <em>not</em> a lower bound on context — it is a strong baseline that will likely tie.</td><td>Make the baselines honest: <em>agent + repo</em> vs. <em>agent + repo + CMS</em>; expect small deltas; keep Study 1 small (20–30 instances) and secondary.</td></tr>
+<tr><td>Line 167 of <code>proposal.md</code></td><td>Stray word "create" left in the dataset section.</td><td>Delete.</td></tr>
+</table></div>
+</section>
+
+<section id="built">
+<h2>Built vs. claimed</h2>
+<p>From a file-level audit of <code>harnext-context-engine</code> (101 commits, 10 May – 28 Jun 2026, ~3.9k lines of tests). The pipeline that exists:</p>
+<div class="pipe">
+  <span class="node ok">ingest (8 connectors)</span><span class="arrow">→</span>
+  <span class="node ok">cms.events.raw.v1</span><span class="arrow">→</span>
+  <span class="node part">classifier: rules stub + gap z-score</span><span class="arrow">→</span>
+  <span class="node ok">fast.v1 / batch.v1 (session windows)</span><span class="arrow">→</span>
+  <span class="node ok">builder: Claude Code over mounted AgentFS</span><span class="arrow">→</span>
+  <span class="node ok">snapshot + ledger + conversation log</span><span class="arrow">→</span>
+  <span class="node ok">MCP: research · get_urls · update</span>
+</div>
+<div class="tablewrap"><table>
+<tr><th>Proposal claim</th><th style="width:120px">Status</th><th>Evidence</th></tr>
+<tr><td>Fast/batch lanes on Kafka, CloudEvents 1.0, subject-keyed</td><td><span class="pill ok">implemented</span></td><td><code>topics.py:16-18</code>; envelope is flat CloudEvents + <code>mgtenant</code>, key = <code>tenant:subject</code> (not the proposal's wrapper shape)</td></tr>
+<tr><td>Stateless builder agents, both lanes through one path</td><td><span class="pill ok">implemented</span></td><td><code>build_runner.py:54-62</code>; harness runs as a subprocess, changed files re-derived from SHA-256</td></tr>
+<tr><td>AgentFS (SQLite) one repo per org; snapshots; rollback; idempotency; DLQ; reconcile on restart</td><td><span class="pill ok">implemented</span></td><td><code>agentfs_backend.py</code>, <code>persistence.py</code>, <code>dlq.py</code>, <code>reconcile.py</code></td></tr>
+<tr><td>Raw-conversation log, URL-addressable</td><td><span class="pill ok">implemented</span></td><td><code>cms://conversation/&lt;id&gt;</code>, <code>conversation.py:17-48</code></td></tr>
+<tr><td><code>context_update</code> spawns internal write agent; per-org tenancy on every call</td><td><span class="pill ok">implemented</span></td><td><code>mcp/main.py:117-141</code>; static HS256 JWT with <code>org</code> claim</td></tr>
+<tr><td><code>context_research</code> searches "events, files, and sources"</td><td><span class="pill part">partial</span></td><td>Read-only Claude Code agent (Read/Glob/Grep) over the latest FS snapshot, starting at <code>INDEX.md</code>. No embeddings, no raw-event search. <code>research.py:20-28</code></td></tr>
+<tr><td><code>context_get_urls</code> fetches URL content</td><td><span class="pill part">partial</span></td><td>Only <code>cms://conversation/</code>; no web/GitHub fetch</td></tr>
+<tr><td>Redpanda + Flink + Paimon stack</td><td><span class="pill part">partial</span></td><td>Redpanda + Redis + one SQLite WAL file. <code>infra/docker-compose.yml</code></td></tr>
+<tr><td>Rules floor (JIRA P0, @oncall, Stripe ≥ $N)</td><td><span class="pill bad">absent</span></td><td><code>rules.py:15-18</code> returns <code>None</code>; a test asserts P0 is <em>not</em> matched</td></tr>
+<tr><td>HBOS, robust-z/MAD, JS/KL, multi-feature scoring</td><td><span class="pill bad">absent</span></td><td><code>anomaly.py:1-7</code>: Welford mean/var on inter-arrival gap only</td></tr>
+<tr><td>Multi-window confirmation, absolute-volume floor, situation envelope</td><td><span class="pill bad">absent</span></td><td><code>router.py:26-33</code>: <code>fast = rule OR z &gt; 3.0</code></td></tr>
+<tr><td><code>cms.feedback.v1</code> / <code>routing_feedback</code></td><td><span class="pill bad">absent</span></td><td>no hits in code</td></tr>
+<tr><td>Cold archive in Paimon/Iceberg; bitemporal graph + RAG store</td><td><span class="pill bad">absent</span></td><td>README "Status": deferred; Graphiti v0 archived on a branch</td></tr>
+<tr><td><code>(event, context)</code> envelopes to external agents, consumer groups per role, Python SDK</td><td><span class="pill bad">absent</span></td><td>Kafka is internal only; no SDK package</td></tr>
+<tr><td>Studies 1–3, SWE-bench-Live, ProAgentBench, any metric code</td><td><span class="pill bad">absent</span></td><td>grep for swe/bench/eval/replay/precision/recall: nothing</td></tr>
+<tr><td>Baselines in Flink keyed state, 5-min buckets, 4-week window</td><td><span class="pill contra">contradicts</span></td><td><code>db.py:173-193</code>: SQLite rows, stats grow without bound</td></tr>
+<tr><td>Internal filesystem MCP server; FS <em>not</em> mounted</td><td><span class="pill contra">contradicts</span></td><td>FS is mounted (<code>agentfs exec</code> temp dir) and the agent uses native Read/Write/Edit/Bash — the "OS-mount approach" the proposal says was replaced</td></tr>
+<tr><td>Fork-per-session + optimistic commit + conflict resolution</td><td><span class="pill contra">contradicts</span></td><td><code>dispatcher.py:1-8</code>: "Single-writer-per-org is the load-bearing invariant"; per-org asyncio lock; in-place mutation; linear snapshots</td></tr>
+</table></div>
+
+<h3>Not in the proposal but in the code</h3>
+<p class="small">Next.js dashboard; email/Google/GitHub auth; OAuth device flow for harness CLIs; Celery/Redis pollers; sitemap and URL crawlers; LiveAgent, Stripe, YouTube-caption, Mailchimp connectors; a provider-agnostic <code>harnext</code> harness (OpenRouter/NIM); the read-only <code>_event/</code> mount of changed files; MCP request analytics. The last six weeks of commits are product work, not thesis work — worth knowing when you plan.</p>
+
+<div class="callout bad">
+<p><strong>Two real bugs to fix before any experiment.</strong> (1) The MCP process builds its own <code>BuildRunner</code> (<code>mcp/context.py:35-51</code>), so <code>context_update</code> bypasses the builder's per-org lock — an MCP write and a builder build can race on the live FS, which would silently corrupt the very consistency claim you are evaluating. (2) The builder prompt says "do not run shell commands" while <code>ALLOWED_TOOLS</code> includes <code>Bash</code> (<code>harness/base.py:25-28</code>); decide which is true and make the experiment condition explicit.</p>
+</div>
+</section>
+
+<section id="missing">
+<h2>What is missing for a first draft</h2>
+<div class="two">
+<div class="card"><h3>In the proposal</h3>
+<ul>
+<li><strong>Related work.</strong> Nothing on agent memory systems (MemGPT/Letta, Mem0, Zep/Graphiti, A-MEM, LangMem), on "context engineering", or on file-based agent memory. The research notes cover streaming and anomaly detection well; the memory side is only in RQ5.</li>
+<li><strong>A definition of "context".</strong> The old design had a per-event <code>context</code> object; the FS design has files. What is a Context Unit now? (Suggested: a snapshot-consistent answer synthesised from the FS as of snapshot <code>s</code>.)</li>
+<li><strong>Consistency model statement.</strong> What does a reader of <code>context_research</code> see relative to concurrent builds? (Snapshot isolation, monotonic snapshots, single writer per org — all true today, none written down.)</li>
+<li><strong>Threats to validity, cost budget, data licensing</strong> (Apache JIRA/GitHub content is public; SWE-bench-Live is MIT), <strong>timeline</strong>.</li>
+<li><strong>One chosen evaluation</strong> (see next section).</li>
+</ul></div>
+<div class="card"><h3>In the implementation</h3>
+<ul>
+<li><strong>Replay tooling.</strong> A script that turns <code>eval-prototype/data/*.jsonl</code> (+ ticket changelogs and comments) into CloudEvents in recorded order with a cutoff gate, producing to <code>cms.events.raw.v1</code>. The GitHub connector already shapes commit/issue events; reuse its types.</li>
+<li><strong>JIRA event type.</strong> There is no <code>com.atlassian.jira.*</code> connector; add a minimal one (issue created, changelog transition, comment).</li>
+<li><strong>Rules floor.</strong> Two lines: <code>priority ∈ {Blocker, Critical}</code> → FAST. This is enough for the cadence experiment.</li>
+<li><strong>Probe runner + metrics.</strong> Calls <code>context_research</code> per held-out ticket, parses cited paths/keys, scores against gold, writes a CSV. ~200 lines.</li>
+<li><strong>Baseline retrievers</strong> that answer the same probes without the builder: BM25 over raw events; embeddings over raw events; the <code>fake</code> harness (dump, no curation).</li>
+<li><strong>Cost/latency instrumentation</strong> per build and per MCP call (usage is already returned by the harness; persist it).</li>
+</ul></div>
+</div>
+</section>
+
+<section id="novelty">
+<h2>Where the novelty is (ranked by defensibility ÷ effort)</h2>
+<p>Everything below is testable with the SPARK corpus and the current builder. The classifier and the fork model are deliberately not on this list.</p>
+
+<div class="rank"><div class="n">1</div><div>
+<h3>Agent-as-curator: a coding agent, not a pipeline, decides how knowledge is organised and superseded</h3>
+<p>Every surveyed memory system (Mem0, Zep, MemGPT, GraphRAG-style summaries) uses a <em>fixed</em> extraction schema — entities, triples, summaries — chosen by the system designer. Harnext gives a general coding agent a filesystem, a <code>CLAUDE.md</code> contract and an event, and lets it choose files, sections and supersession. The claim to test: <em>agent-curated files beat retrieval over the raw event log on questions that require synthesis across events, at bounded token cost.</em> The <code>fake</code> harness (append, no curation) and a BM25/embedding retriever over raw events are the two ablations and both are nearly free.</p>
+</div></div>
+
+<div class="rank"><div class="n">2</div><div>
+<h3>Incorporation cadence: the fast/batch split as a cost–freshness–quality knob of the curator</h3>
+<p>Nobody has measured how the <em>granularity of updates</em> to an agent-maintained store affects its quality. One event per agent run (FAST) is fresh but expensive and prone to fragmentation; twenty events per run (BATCH) is cheap and lets the agent dedupe, but stale. Sweep window size {1, 5, 20, 50} on the same replayed stream and report retrieval quality, builder tokens per event, and staleness (event time → time reflected in a snapshot). Adding a priority rule (Blocker → FAST) gives the mixed condition. This reuses the lane machinery you built and turns RQ2 into something measurable without HBOS.</p>
+</div></div>
+
+<div class="rank"><div class="n">3</div><div>
+<h3>Supersession correctness under streaming updates</h3>
+<p>JIRA changelogs give exact ground truth for "what was the status / assignee / fixVersion of SPARK-N as of T". A store that appends but never supersedes answers wrong; a curator that rewrites <code>OVERVIEW.md</code> and logs <code>_meta/superseded.md</code> should answer right. This is the file-system version of the bitemporal question in RQ5, and it is deterministic to grade. It also directly exercises the prompt's "never rewrite timeline, keep OVERVIEW current" contract.</p>
+</div></div>
+
+<div class="rank"><div class="n">4</div><div>
+<h3>Cross-source linkage emerges from curation</h3>
+<p>The regex join (<code>[SPARK-NNNNN]</code> in commit messages) is the gold for "which commits fixed this ticket". Does the curated FS link ticket ↔ commit ↔ PR files without being told to join? Measure link recall in the store versus the gold join. This is the proposal's Study 3 question ("cross-source context an agent could not get from any single feed") made concrete.</p>
+</div></div>
+
+<div class="rank"><div class="n">5</div><div>
+<h3>A stated consistency model for a single-writer snapshot store (small, theoretical)</h3>
+<p>Readers get snapshot isolation on an immutable snapshot; snapshots are linear per org; writes serialise per org; <code>context_update</code> is a write through the same agent. Write it as four guarantees with a short argument each. RQ5 open question 1 in your notes calls this "a concrete thesis contribution opportunity". It costs a page.</p>
+</div></div>
+
+<div class="callout warn"><p><strong>What to say about the classifier.</strong> Keep the per-entity anomaly-detection <em>design</em> as a chapter section with the Cloudflare framing and the rules-floor argument — it is good design writing. State the implementation as rules + per-entity z-score, and if time allows run one offline notebook (pyod HBOS vs. global HBOS on the Public Jira priority labels, recall@FPR ≤ 1 %) as a secondary result. Do not let it be the thing the committee judges.</p></div>
+</section>
+
+<section id="eval">
+<h2>Evaluation you can run</h2>
+<p class="evq">Does an agent-curated context store, updated from a replayed event stream, serve better context than retrieval over the raw stream — and how does update cadence change cost, freshness and quality?</p>
+
+<h3>Corpus: apache/spark, one time window</h3>
+<p>Pick a warm-up + test window, e.g. <strong>2025-07-01 → 2025-12-31</strong> (post-cutoff for most models, pre-dating the SWE-bench-Live-style contamination concern). Rough volume from your extracted data: ~330 commits/month and ~30 fixed bugs/month, plus all tickets, changelog transitions and comments. Expect roughly 3–5k events over six months. Three streams, one timeline:</p>
+<div class="tablewrap"><table>
+<tr><th>Stream</th><th>Source</th><th>Events</th><th>Have it?</th></tr>
+<tr><td>JIRA</td><td>issues.apache.org REST (<code>fetch_jira.py</code> exists; needs <code>expand=changelog</code> + comments)</td><td>issue created, transition, comment</td><td>partly</td></tr>
+<tr><td>Git</td><td>treeless clone (<code>extract_commits.py</code>; add changed-file list via <code>--name-only</code>)</td><td>commit with files</td><td>yes</td></tr>
+<tr><td>GitHub PRs</td><td>GitHub API (GitHub connector exists)</td><td>PR opened/merged, review comment</td><td>connector yes, extraction no</td></tr>
+</table></div>
+<p><strong>Held-out set:</strong> every fixed-bug ticket whose <code>created</code> falls in the last two months of the window and that has ≥ 1 linking commit within [created, resolved + 14 d]. Target n = 100–150. The store is frozen at snapshot <code>s(created − ε)</code> for each probe; the leakage gate asserts no event with <code>time &gt; created</code> reached the builder before that snapshot.</p>
+
+<h3>Conditions (same replayed stream, paired per ticket)</h3>
+<div class="tablewrap"><table>
+<tr><th>Arm</th><th>Store</th><th>Answering</th><th>What it isolates</th></tr>
+<tr><td><b>C0</b> no store</td><td>—</td><td>Agent sees only the ticket text</td><td>floor</td></tr>
+<tr><td><b>C1</b> raw BM25</td><td>raw events indexed with BM25</td><td>top-k events → same read agent</td><td>lexical retrieval over the log</td></tr>
+<tr><td><b>C2</b> raw embeddings</td><td>raw events embedded</td><td>top-k events → same read agent</td><td>dense retrieval over the log</td></tr>
+<tr><td><b>C3</b> dump FS</td><td>one file per event, no curation (<code>fake</code> harness)</td><td><code>context_research</code></td><td>filesystem + read-agent without curation</td></tr>
+<tr><td><b>C4</b> curated FS (ours)</td><td>builder, batch window 20</td><td><code>context_research</code></td><td>the curator</td></tr>
+<tr><td><b>C4-w</b> cadence sweep</td><td>builder, windows {1, 5, 50}; and rules (Blocker → FAST) + 20</td><td><code>context_research</code></td><td>incorporation cadence</td></tr>
+</table></div>
+<p class="small">C1/C2 must use the same read-agent and the same token budget as C4 so the comparison is store-vs-store, not agent-vs-agent. Full-dump ("entire history in context") is a cost ceiling only; run it on 10 tickets to show why it is infeasible, not as a real arm.</p>
+
+<h3>Probes (all graded from data you already have)</h3>
+<div class="tablewrap"><table>
+<tr><th>Probe</th><th>Question to <code>context_research</code></th><th>Gold</th><th>Metric</th></tr>
+<tr><td><b>P1</b> Localization</td><td>"Given this bug report [summary + description], which files in the repository are most likely involved, and what prior work is related?"</td><td>files touched by the linking commit(s)</td><td>file-level recall@k, precision, F1; hit@1</td></tr>
+<tr><td><b>P2</b> Temporal state</td><td>"What was the status, assignee and fix version of SPARK-N as of [T]?" for sampled (ticket, T) pairs in the window</td><td>JIRA changelog replayed to T</td><td>exact-match accuracy per field; supersession error rate (answers a superseded value)</td></tr>
+<tr><td><b>P3</b> Cross-source link</td><td>"Which commits or PRs addressed SPARK-N?"</td><td>regex join (89.7 % recall, ~100 % precision)</td><td>link recall / precision</td></tr>
+<tr><td><b>P4</b> Freshness</td><td>— (measured, not asked)</td><td>event time</td><td>time from event to first snapshot whose FS mentions its id; per lane</td></tr>
+<tr><td><b>P5</b> Cost</td><td>—</td><td>—</td><td>builder tokens and $ per event; MCP tokens and latency per probe; store size in files/bytes</td></tr>
+<tr><td><b>P6</b> Groundedness (secondary)</td><td>P1 answers</td><td>cited paths exist in the snapshot</td><td>citation validity rate; optional RAGAS-style faithfulness with a judge from a different model family</td></tr>
+</table></div>
+
+<h3>Optional headline: Study 1, small</h3>
+<p>If budget allows after P1–P5: 20–30 SWE-bench-Live instances from one or two Python repos, arms <em>agent + repo</em> vs. <em>agent + repo + CMS over MCP</em>, % resolved plus tokens. Treat it as an existence proof that the store can be a coding agent's memory, not as the primary result — the deltas will be small because the agent already has the repo.</p>
+
+<h3>Statistics</h3>
+<ul>
+<li>Everything is paired per ticket. Report the paired difference with a BCa bootstrap 95 % CI (10k resamples); McNemar for binary hit@1 and P2 exact match.</li>
+<li>Pre-register the primary metric: <strong>P1 file-level recall@10 for C4 vs. C2</strong>. Everything else is secondary; apply Holm–Bonferroni across the secondary set.</li>
+<li>Non-determinism: the builder is an LLM. Run the C4 build with ≥ 3 seeds (or 3 independent replays) and report between-run variance of the store (file count, P1 score) — this is itself a finding about agent-curated stores.</li>
+<li>Sanity floors: C0 must lose; a "retrieve everything" arm must have recall → 1 and precision → prevalence.</li>
+</ul>
+
+<h3>Budget sketch</h3>
+<div class="tablewrap"><table>
+<tr><th>Item</th><th class="num">Runs</th><th>Notes</th></tr>
+<tr><td>Builder, C4 window 20, ~4k events</td><td class="num">~200</td><td>one agent run per window; at roughly $0.5–2 per run, $100–400 per seed</td></tr>
+<tr><td>Cadence sweep (windows 1, 5, 50, rules+20)</td><td class="num">~4k + 800 + 80 + 250</td><td>window-1 is the expensive arm; cap it to the last 1k events if needed</td></tr>
+<tr><td>Probes P1–P3 × 6 arms × 150 tickets</td><td class="num">~2.7k</td><td>read-agent calls, short; budget ~$0.05–0.2 each</td></tr>
+<tr><td>Dump-FS and BM25/embedding arms</td><td class="num">—</td><td>no builder cost</td></tr>
+</table></div>
+<p class="small">Cheaper model tiers (via the <code>harnext</code> OpenRouter harness) are acceptable for the cadence sweep as long as the arm being compared uses the same model; state the model per arm.</p>
+
+<h3>Threats to validity to write down now</h3>
+<ul>
+<li><strong>Construct:</strong> file localization is a proxy for "right context"; P2/P3 mitigate by testing different needs.</li>
+<li><strong>Contamination:</strong> the model may know SPARK's code; the window post-dates most training cutoffs, and C0 measures what the model knows without any store.</li>
+<li><strong>Single repo:</strong> SPARK only. Add Flink or Kafka for a second corpus if time remains; otherwise say so.</li>
+<li><strong>Join noise:</strong> 10 % of fixed bugs have no linking commit; they are excluded, which biases toward well-documented fixes.</li>
+<li><strong>Builder stochasticity:</strong> covered by seeds above.</li>
+</ul>
+</section>
+
+<section id="outline">
+<h2>Draft outline, research questions, contributions</h2>
+
+<h3>Research questions (rewritten to match what will be measured)</h3>
+<ol>
+<li><strong>RQ1 — Curation.</strong> Can a stateless coding agent maintain a coherent, per-organisation context store from a heterogeneous event stream, and does the curated store serve better context than retrieval over the raw log at comparable token cost? (P1, P3, P5)</li>
+<li><strong>RQ2 — Cadence.</strong> How does the granularity of incorporation (per event vs. per window, with a rules-based fast lane) trade freshness, cost and quality? (P4, P5, P1 across C4-w)</li>
+<li><strong>RQ3 — Consistency.</strong> What temporal-consistency guarantees does a single-writer, snapshot-versioned filesystem give its readers, and does the curator honour supersession in practice? (formal statement + P2)</li>
+<li><strong>RQ4 — Interface.</strong> Is a synthesis-only MCP surface (no store browsing) sufficient for an external coding agent? (Study 1 small, plus P6)</li>
+</ol>
+
+<h3>Contributions to claim</h3>
+<ol>
+<li>An open-source reference architecture for a streaming context engine whose store is an agent-curated versioned filesystem, exposed only through MCP.</li>
+<li>The first controlled measurement of agent-curated versus raw-log retrieval, and of incorporation cadence, on a real multi-source software-engineering stream.</li>
+<li>A replayable evaluation corpus and probe suite (SPARK JIRA + Git + PRs, gold from the ticket–commit join) with a leakage gate.</li>
+<li>A stated consistency model for single-writer snapshot stores and an empirical supersession test.</li>
+</ol>
+
+<h3>Chapters and their state</h3>
+<div class="tablewrap"><table>
+<tr><th style="width:26%">Chapter</th><th>Content</th><th style="width:22%">Ready?</th></tr>
+<tr><td>1 Introduction</td><td>Motivation (streams → agents), Confluent RTCE as closed prior art, problem statement, RQ1–4, contributions, thesis structure</td><td><span class="pill ok">mostly</span> from proposal + problem-statement.md</td></tr>
+<tr><td>2 Background</td><td>Stream processing and Kappa+ (RQ1 note), CloudEvents, MCP, LLM agents and tool use, agent memory taxonomy (RQ5 §2), streaming anomaly detection (RQ2 reframe §2–3)</td><td><span class="pill ok">mostly</span> from research notes</td></tr>
+<tr><td>3 Related work</td><td>Memory systems; context engineering; file-based agent memory; RAG over event logs; Confluent RTCE / Timeplus; streaming benchmarks</td><td><span class="pill bad">missing</span></td></tr>
+<tr><td>4 Design</td><td>Architecture; envelope and lanes; the builder contract (<code>CLAUDE.md</code>, layout, supersession rules); store and snapshots; consistency model; MCP surface; routing design (rules + per-entity deviation) with its guards as design discussion</td><td><span class="pill part">rewrite</span> proposal around the FS</td></tr>
+<tr><td>5 Implementation</td><td>harnext: services, harness abstraction, AgentFS/git backends, ledger/rollback/DLQ/reconcile, connectors, what is deferred</td><td><span class="pill ok">ready</span> from README + audit</td></tr>
+<tr><td>6 Evaluation</td><td>Corpus, replay, conditions, probes, statistics, results, cost</td><td><span class="pill bad">to run</span></td></tr>
+<tr><td>7 Discussion</td><td>What curation buys and costs; cadence findings; failure modes observed (fragmentation, stale OVERVIEW, hallucinated links); threats to validity</td><td><span class="pill bad">after results</span></td></tr>
+<tr><td>8 Conclusion & future work</td><td>Fork-per-session/optimistic commit; internal FS MCP with bash; HBOS + guards; push delivery over Kafka; multi-repo corpora; Paimon archive</td><td><span class="pill part">list exists</span></td></tr>
+</table></div>
+</section>
+
+<section id="plan">
+<h2>Six-week plan to a first draft with results</h2>
+<div class="week"><div class="w">Week 1</div><p>Fix the MCP-write race and the Bash contradiction. Add the JIRA event type and the Blocker/Critical rule. Write <code>replay.py</code> (JSONL → CloudEvents in recorded order, cutoff gate). Extract changelogs, comments, PR events for the window. Freeze the corpus.</p></div>
+<div class="week"><div class="w">Week 2</div><p>Write the probe runner and metric code; build the gold sets (files, state-as-of, links). Run C0 and C3 (dump) end to end on 20 tickets to shake out parsing. Start writing Chapter 4 (Design) around the FS.</p></div>
+<div class="week"><div class="w">Week 3</div><p>Run C4 (window 20) with seed 1 over the full window. Implement C1 (BM25) and C2 (embeddings) with the same read agent. Run all probes. Write Chapter 5.</p></div>
+<div class="week"><div class="w">Week 4</div><p>Cadence sweep (windows 1 capped, 5, 50, rules+20). Seeds 2–3 for C4. Compute paired CIs. Write Related Work.</p></div>
+<div class="week"><div class="w">Week 5</div><p>Results tables and figures; Discussion; failure-mode analysis from the conversation logs (the store is inspectable — show one good and one bad curation decision). Optional: small Study 1 if budget remains.</p></div>
+<div class="week"><div class="w">Week 6</div><p>Introduction, Conclusion, Abstract. Reconcile proposal.md with the thesis (or retire it). Full read-through against the gap table above.</p></div>
+</section>
+
+<section id="reading">
+<h2>Related work to cite (the memory side is the gap)</h2>
+<p class="small">The streaming, anomaly-detection and benchmarking literature is already well covered in <code>research/</code>. These fill the memory/context-engineering half. Verify each before citing; arXiv IDs from memory should be checked.</p>
+<ul>
+<li><strong>Agent memory systems:</strong> MemGPT / Letta (Packer et al., 2023); Mem0 (Chhikara et al., 2025); Zep / Graphiti temporal knowledge graph (Rasmussen et al., 2025); A-MEM (Xu et al., 2025); Generative Agents reflection memory (Park et al., 2023); LangMem; Cognee.</li>
+<li><strong>Memory benchmarks:</strong> LongMemEval (Wu et al., ICLR 2025); LoCoMo (Maharana et al., 2024) — cite as context for why you use a domain corpus instead.</li>
+<li><strong>Context engineering / long context limits:</strong> Lost in the Middle (Liu et al., 2023); Chroma "Context Rot" (2025); Anthropic's context-engineering guidance; Karpathy's "LLM wiki"-style agent-maintained knowledge base pattern if you can find a citable source.</li>
+<li><strong>Retrieval over software artefacts:</strong> Agentless (Xia et al., 2024) for file-localization metrics; SWE-bench / SWE-bench-Live; ContextBench (Li et al., 2026) for context precision/recall framing; CodeRAG-style repository retrieval.</li>
+<li><strong>Traceability (ticket ↔ commit):</strong> Bachmann & Bernstein (2009) on missing links in bug–commit data; Bird et al. (2009) "Fair and balanced?" bias in bug-fix datasets — justifies the 10 % unlinked exclusion and its bias.</li>
+<li><strong>Event-driven AI / streaming context:</strong> Confluent Real-Time Context Engine (2025 announcement + docs); Kai Waehner's event-driven-agent writing; Timeplus.</li>
+<li><strong>Protocols:</strong> MCP specification (resources, tools, subscriptions); CloudEvents v1.0.2; A2A for the push-protocol discussion in Future Work.</li>
+<li><strong>Consistency vocabulary:</strong> Bailis et al., "Highly Available Transactions" (2013) for snapshot/monotonic-read definitions; Kleppmann, <em>Designing Data-Intensive Applications</em>.</li>
+</ul>
+</section>
+</main>
+</div>

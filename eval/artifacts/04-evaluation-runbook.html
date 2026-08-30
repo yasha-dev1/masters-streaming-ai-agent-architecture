@@ -1,0 +1,349 @@
+<title>Context Engine Evaluation Runbook</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Fira+Code:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#F6F7F5; --paper-2:#ECEFEA; --ink:#1B1F1E; --ink-2:#4B5450; --ink-3:#7C8580; --rule:#D5DAD4;
+  --accent:#2B4C8C; --accent-soft:#DCE4F4; --accent-ink:#1F3A6E;
+  --truth:#0F7A5A; --truth-soft:#D8EFE6;
+  --fast:#B4731A; --fast-soft:#F7E9CF; --batch:#2B4C8C; --batch-soft:#DCE4F4;
+  --bad:#AE3B3B; --bad-soft:#F5DCDC; --warn:#A46A10; --warn-soft:#F6E8CC;
+  --code:#E8ECE7;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#151817; --paper-2:#1D2220; --ink:#E6EAE6; --ink-2:#B2BBB5; --ink-3:#7F8983; --rule:#2D3430;
+    --accent:#8FB0EE; --accent-soft:#1B2A45; --accent-ink:#B7CCF5;
+    --truth:#6FD1AC; --truth-soft:#123528;
+    --fast:#E2A64B; --fast-soft:#3B2C12; --batch:#8FB0EE; --batch-soft:#1B2A45;
+    --bad:#E58C8C; --bad-soft:#3D1E1E; --warn:#E0B25E; --warn-soft:#3A2C12;
+    --code:#222825;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#151817; --paper-2:#1D2220; --ink:#E6EAE6; --ink-2:#B2BBB5; --ink-3:#7F8983; --rule:#2D3430;
+  --accent:#8FB0EE; --accent-soft:#1B2A45; --accent-ink:#B7CCF5;
+  --truth:#6FD1AC; --truth-soft:#123528;
+  --fast:#E2A64B; --fast-soft:#3B2C12; --batch:#8FB0EE; --batch-soft:#1B2A45;
+  --bad:#E58C8C; --bad-soft:#3D1E1E; --warn:#E0B25E; --warn-soft:#3A2C12;
+  --code:#222825;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.58;margin:0}
+a{color:var(--accent)}
+.shell{display:grid;grid-template-columns:240px minmax(0,1fr);max-width:1280px;margin:0 auto}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:34px 18px 34px 26px;border-right:1px solid var(--rule);font-size:13.5px}
+nav.toc .brand{font-family:Spectral,Georgia,serif;font-weight:600;font-size:17px;margin-bottom:16px}
+nav.toc a{display:block;color:var(--ink-2);text-decoration:none;padding:5px 0 5px 10px;border-left:2px solid transparent;margin-left:-12px}
+nav.toc a:hover{color:var(--ink);border-left-color:var(--accent)}
+nav.toc .grp{margin-top:14px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+main{padding:40px 52px 100px 56px;min-width:0}
+.eyebrow{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+h1{font-family:Spectral,Georgia,serif;font-weight:500;font-size:42px;line-height:1.1;margin:8px 0 14px;text-wrap:balance;letter-spacing:-.01em}
+h2{font-family:Spectral,Georgia,serif;font-weight:500;font-size:29px;line-height:1.15;margin:58px 0 8px;text-wrap:balance}
+h2 .k{display:block;font-family:"Fira Code",monospace;font-size:12px;letter-spacing:.08em;color:var(--accent);margin-bottom:8px;text-transform:uppercase}
+h3{font-family:Spectral,Georgia,serif;font-weight:600;font-size:20px;margin:28px 0 8px;text-wrap:balance}
+h4{font-size:12.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);margin:20px 0 6px;font-weight:700}
+p,li{max-width:74ch}
+p{margin:0 0 12px}
+ul,ol{padding-left:22px;margin:0 0 14px}
+li{margin:0 0 7px}
+.lede{font-family:Spectral,Georgia,serif;font-size:21px;line-height:1.45;color:var(--ink-2);max-width:62ch}
+code,.mono{font-family:"Fira Code",ui-monospace,Menlo,monospace;font-size:.86em}
+code{background:var(--code);padding:1px 5px;border-radius:3px}
+pre{background:var(--code);padding:14px 16px;border-radius:6px;overflow-x:auto;font-size:12.6px;line-height:1.5;max-width:100%}
+pre code{background:none;padding:0;font-size:inherit}
+.tablewrap{overflow-x:auto;margin:14px 0 22px;border:1px solid var(--rule);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:700px}
+th,td{padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top;text-align:left}
+th{background:var(--paper-2);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);font-weight:700}
+tr:last-child td{border-bottom:none}
+td.n{font-variant-numeric:tabular-nums;text-align:right}
+.pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pill.fast{background:var(--fast-soft);color:var(--fast)}.pill.batch{background:var(--batch-soft);color:var(--batch)}
+.pill.truth{background:var(--truth-soft);color:var(--truth)}.pill.bad{background:var(--bad-soft);color:var(--bad)}.pill.warn{background:var(--warn-soft);color:var(--warn)}.pill.acc{background:var(--accent-soft);color:var(--accent-ink)}
+.dec{display:grid;grid-template-columns:56px 1fr;gap:14px;padding:14px 0;border-bottom:1px solid var(--rule)}
+.dec .id{font-family:"Fira Code",monospace;font-size:14px;color:var(--accent);padding-top:3px}
+.dec b{display:block;margin-bottom:3px}
+.dec p{margin:0;max-width:none}
+.dec .why{color:var(--ink-2);font-size:14.5px}
+.exp{border:1px solid var(--rule);border-radius:8px;margin:22px 0;background:var(--paper-2);overflow:hidden}
+.exp header{padding:16px 20px;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:64px 1fr;gap:14px;align-items:start}
+.exp header .id{font-family:"Fira Code",monospace;font-size:22px;color:var(--accent);font-weight:500;line-height:1}
+.exp header h3{margin:0 0 4px}
+.exp header p{margin:0;color:var(--ink-2);max-width:none}
+.exp .body{padding:6px 20px 16px}
+.exp .body p,.exp .body li{max-width:none}
+.exp ol.steps{counter-reset:s;list-style:none;padding-left:0}
+.exp ol.steps li{position:relative;padding-left:40px;margin-bottom:9px}
+.exp ol.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:1px;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent-ink);font-family:"Fira Code",monospace;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:500}
+.check{border-left:3px solid var(--truth);background:var(--truth-soft);padding:12px 18px;border-radius:0 6px 6px 0;margin:14px 0 6px}
+.check .lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--truth);font-weight:700;margin-bottom:6px}
+.check ul{margin:0;padding-left:20px}
+.check li{margin:0 0 5px;max-width:none}
+.gate{border-left:3px solid var(--warn);background:var(--warn-soft);padding:10px 16px;border-radius:0 6px 6px 0;margin:8px 0 4px;font-size:14.5px}
+.gate b{color:var(--warn)}
+.gate p{margin:0;max-width:none}
+.phase{display:grid;grid-template-columns:110px 1fr;gap:14px;padding:12px 0;border-bottom:1px solid var(--rule)}
+.phase .w{font-family:"Fira Code",monospace;font-size:12.5px;color:var(--ink-2);padding-top:3px}
+.phase p{margin:0 0 4px;max-width:none}
+.small{font-size:13.5px;color:var(--ink-2)}
+@media (max-width:920px){.shell{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule)}main{padding:28px 20px 72px}h1{font-size:34px}.dec,.phase{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+
+<div class="shell">
+<nav class="toc" aria-label="Sections">
+  <div class="brand">Evaluation Runbook</div>
+  <a href="#decisions">Decisions</a>
+  <a href="#plan">Phase plan</a>
+  <a href="#build">Build once: replay, probes, graders</a>
+  <div class="grp">Runbooks</div>
+  <a href="#e1">E1 Routing</a>
+  <a href="#e2">E2 State fidelity</a>
+  <a href="#e3">E3 Store organisation</a>
+  <a href="#e4">E4 Envelope</a>
+  <a href="#e5">E5 Cadence</a>
+  <a href="#e6">E6 System</a>
+  <div class="grp">Meta</div>
+  <a href="#meta">How we know the evaluation is right</a>
+  <a href="#gates">Go / no-go gates</a>
+</nav>
+
+<main>
+<div class="eyebrow">Companion to the Evaluation Protocol · 30 Aug 2026</div>
+<h1>Decisions, plan, and how each experiment is actually run</h1>
+<p class="lede">The protocol says what and why. This says which option was chosen, in what order the work happens, what a run consists of step by step, and — for every experiment — the checks that must pass before its numbers are believed.</p>
+
+<!-- ============ DECISIONS ============ -->
+<section id="decisions">
+<h2><span class="k">Decisions</span>Twelve calls, made</h2>
+
+<div class="dec"><div class="id">D1</div><div><b>Corpus R = Apache Kafka, window 2026-01-01 → 2026-06-30.</b><p class="why">Highest <code>dev@</code> volume of the live-JIRA Apache projects, a KIP process whose <code>[VOTE]</code>/<code>[DISCUSS]</code> threads have unambiguous outcomes, active JIRA, and GitHub PRs with mandated <code>KAFKA-N</code> keys. Flink is the replication corpus if time remains, not a parallel primary. Jan–Apr is warm-up (the store is built), May–Jun is the probe period.</p></div></div>
+<div class="dec"><div class="id">D2</div><div><b>Corpus S = OrgForge, added in Phase 2, extended with clicks and Stripe.</b><p class="why">Phase 1 runs E1/E2/E3/E6 on Corpus R alone, because R needs no generator and produces the central E3 result. OrgForge is added for the customer-side claims (E1 injected situations, E4 simulated tasks, E6 load shapes). If Phase 1 slips, Phase 2 shrinks to E1-injected + E6 only — never dropped entirely, because E1 has no exact ground truth without it.</p></div></div>
+<div class="dec"><div class="id">D3</div><div><b>Entity keys for R:</b> <code>issue:KAFKA-N</code>, <code>kip:N</code>, <code>pr:N</code>, <code>thread:&lt;root-message-id&gt;</code>, <code>contributor:&lt;sha256(email)[:12]&gt;</code>, <code>component:&lt;jira component&gt;</code>. <p class="why">Issues, KIPs and PRs are the entities humans reason about; threads without a key are entities of their own; contributors are hashed for privacy. Components give a coarse entity that aggregates many events — useful for testing multi-source probes.</p></div></div>
+<div class="dec"><div class="id">D4</div><div><b>Models.</b> Builder and read agent: <code>claude-sonnet-5</code> for every arm of every sweep; <code>claude-opus-5</code> additionally for the S3 store only (E3 model-tier check). Judge: a non-Anthropic frontier model, temperature 0. Same prompt/schema versions across arms, hashed and logged.<p class="why">One fixed mid-tier model keeps the sweeps affordable and comparable; the frontier tier on the headline arm shows whether conclusions depend on model strength. Judge from a different family avoids self-preference bias.</p></div></div>
+<div class="dec"><div class="id">D5</div><div><b>Fast-lane budget headline b = 2 %; sweep {1, 2, 5, 10} %.</b> θ per source is tuned on Jan–Feb of the window and frozen before May–Jun is touched.<p class="why">Tuning on the probe period would leak. 2 % is in the range where one on-call human could review admissions; the sweep shows the curve.</p></div></div>
+<div class="dec"><div class="id">D6</div><div><b>Store layout for the curated arms = the seeded harnext layout</b> (<code>CLAUDE.md</code>, <code>INDEX.md</code>, <code>_meta/schema.md</code>, <code>_meta/superseded.md</code>, <code>entities/&lt;type&gt;/&lt;slug&gt;/{OVERVIEW,timeline,facts}.md</code>, <code>topics/</code>). Backend: the git backend, one commit per run.<p class="why">Already implemented and tested; git gives snapshot-at-T for free via <code>git checkout &lt;sha&gt;</code>, which the leakage gate and E3 health checkpoints need.</p></div></div>
+<div class="dec"><div class="id">D7</div><div><b>Batch window = session window per entity: 30 s gap, 20-event cap, 120 s max age</b> for replay at 60× real time; scaled proportionally at other speeds.<p class="why">The classifier already implements exactly these three knobs. At 60× replay, 30 s ≈ 30 real minutes of inactivity, a natural conversation gap.</p></div></div>
+<div class="dec"><div class="id">D8</div><div><b>Read budget for E2/E3 comparisons = 8k tokens headline; 2k and 32k as the curve.</b> Enforced by truncating what the read agent may load, counted with the provider's tokeniser.<p class="why">8k fits a fast-lane run; 32k is the point where long-context degradation is documented to begin; 2k tests whether OVERVIEW alone suffices.</p></div></div>
+<div class="dec"><div class="id">D9</div><div><b>Sample sizes:</b> 300 probes per corpus (60 per family); 150 fast tasks + 150 batch windows per corpus; 200 injected situations; 3 seeds for every LLM-built store; 3 runs per task for pass^3.<p class="why">Paired power calculation for a 10-point effect at α 0.05 / power 0.8 gives ~150; families are balanced so no family dominates.</p></div></div>
+<div class="dec"><div class="id">D10</div><div><b>Fast-lane SLO for E6 = p99 latency-to-agent-start ≤ 2 s at up to 1.5× the single-lane knee; batch-lane SLO = fold latency p99 ≤ 5 min and consumer lag not trending up.</b><p class="why">2 s is far below any LLM call, so it isolates the engine; 1.5× the knee is the overload regime where a single lane's tail is known to collapse.</p></div></div>
+<div class="dec"><div class="id">D11</div><div><b>Pre-registration = a dated <code>eval/PREREG.md</code> committed before the first full run, listing every condition, primary metric, threshold and exclusion rule; amendments appended, never edited.</b></div></div>
+<div class="dec"><div class="id">D12</div><div><b>Two bugs fixed before any run:</b> the builder's per-org lock must cover every writer (the MCP path constructed its own <code>BuildRunner</code>); and the builder prompt's "no shell" instruction must match the allowed tools — decision: <b>allow Bash, read-only, sandboxed</b>, and say so in the write-up.<p class="why">A race on the live store would corrupt the very fidelity being measured; an instruction/tool mismatch makes the experimental condition undefined.</p></div></div>
+</section>
+
+<!-- ============ PLAN ============ -->
+<section id="plan">
+<h2><span class="k">Plan</span>Phase plan</h2>
+<div class="phase"><div class="w">Phase 0 · wk 1</div><div><p><b>Fix D12. Write PREREG.md. Build the replay.</b> Extractors: <code>pony_mail.py</code> (monthly mbox per list → messages with epoch, from-hash, in-reply-to), <code>jira_kafka.py</code> (issues + <code>expand=changelog</code> + comments), <code>gharchive_kafka.py</code> (PullRequest, PullRequestReview, IssueComment, Push for apache/kafka), <code>sitemap</code> (existing connector). Output: <code>replay/kafka-2026H1.jsonl</code>, one CloudEvent per line, sorted by event time, with <code>subject</code> from D3. Hash the file; the hash goes in PREREG.</p></div></div>
+<div class="phase"><div class="w">Phase 0 · wk 2</div><div><p><b>Probe generators + graders + leakage gate</b> (see <a href="#build">Build once</a>). Pilot: 30 probes, all families, graded by two people. Gate G1.</p></div></div>
+<div class="phase"><div class="w">Phase 1 · wk 3</div><div><p><b>E6</b> with the fake harness (no LLM). <b>E1</b> on R (no LLM). Both produce real results early and validate the pipeline.</p></div></div>
+<div class="phase"><div class="w">Phase 1 · wk 4</div><div><p><b>Baseline stores</b> S0 (dump), S1 (templated by code), S4 (vector). <b>E2</b> on all three. Gate G2.</p></div></div>
+<div class="phase"><div class="w">Phase 1 · wk 5–6</div><div><p><b>S3 store × 3 seeds</b> with health snapshots at weeks 1/2/4/8 of replay time. <b>E2 + E3</b>. Opus tier on one seed. Gate G3.</p></div></div>
+<div class="phase"><div class="w">Phase 2 · wk 7</div><div><p><b>OrgForge</b> run: 90 simulated days, scaled to ≥ 20 k events, + clickstream generator + Stripe fixtures; injected situations; world-state dump per hour. Replay file + probes for S. Repeat E1 (exact labels), E2, E3-S3 on S.</p></div></div>
+<div class="phase"><div class="w">Phase 2 · wk 8</div><div><p><b>E4</b> envelopes on both corpora; <b>E1 harm check</b>.</p></div></div>
+<div class="phase"><div class="w">Phase 2 · wk 9</div><div><p><b>E5</b> cadence sweep; S2/S5 if budget remains.</p></div></div>
+<div class="phase"><div class="w">Phase 3 · wk 10</div><div><p>Human audit (200 probes, 100 actions, two annotators), analysis notebooks, figures, write-up.</p></div></div>
+</section>
+
+<!-- ============ BUILD ONCE ============ -->
+<section id="build">
+<h2><span class="k">Infrastructure</span>Built once, used by every experiment</h2>
+
+<h3>The replay file and the clock</h3>
+<p>Every experiment consumes the same JSONL. A <code>replay.py</code> producer reads it and emits to <code>cms.events.raw.v1</code> at a chosen speed-up (60× for builds, open-loop fixed rates for E6), stamping each event with <code>intended_send_ts</code>. A replay <b>stops at a cutoff T</b> when asked; the builder's snapshot after the last fold before T is the state "as of T". Because the store is git-backed, <code>snapshot(T)</code> is a commit SHA, recorded in <code>replay/snapshots.csv</code> as <code>(T, sha, last_event_id)</code>.</p>
+
+<h3>Probe generation (E2, E3, E5)</h3>
+<pre><code>probes/
+  gen_extraction.py    # current value of a field: component, assignee, fixVersion, KIP status
+  gen_temporal.py      # value of field f of entity e AS OF T, T sampled uniformly in probe period
+  gen_update.py        # fields with ≥2 transitions in window: latest value + the superseded one
+  gen_multisource.py   # issue↔PR↔thread↔KIP links from regex join on mandated keys
+  gen_abstention.py    # fields/entities that do not exist in the window
+→ probes/kafka.jsonl: {probe_id, family, entity, T, question, gold, gold_type, superseded_values[], source_event_ids[]}</code></pre>
+<p>Each probe records <code>source_event_ids</code> — the events from which the gold was derived — so the leakage gate and the human audit can trace it.</p>
+
+<h3>Graders</h3>
+<ul>
+<li><code>grade_exact.py</code> — normalised exact match for fields and IDs (case, whitespace, ticket-key formats, version strings); returns 0/1 and the normalised strings so mismatches are inspectable.</li>
+<li><code>grade_claims.py</code> — gold decomposed into atomic claims once (LLM, then frozen and human-checked in the pilot); each claim checked against the answer by an entailment call from the judge model; returns claim-recall and claim-precision.</li>
+<li><code>grade_links.py</code> — set precision/recall of cited keys vs the join.</li>
+<li><code>grade_action.py</code> — field exact-match (assignee@k, component, duplicate-of) + fact coverage (required IDs present) + optional pairwise judge, position-swapped.</li>
+<li><code>store_health.py</code> — file/byte counts, over-cap files, INDEX resolution rate, dangling refs, MinHash near-duplicate facts, superseded-value leakage.</li>
+</ul>
+
+<h3>The leakage gate</h3>
+<pre><code>assert max(event_time for e in delivered_to_builder_before(sha)) &lt;= T
+assert no token of probe.question appears only in events with time &gt; T
+log: probe_id, T, sha, last_event_id, pass/fail</code></pre>
+<p>Runs for every probe and every task; the pass count is reported in the thesis. A failure excludes the probe and is logged, never silently fixed.</p>
+</section>
+
+<!-- ============ E1 ============ -->
+<section id="e1">
+<div class="exp">
+<header><div class="id">E1</div><div><h3>Routing under a budget — how it is run</h3><p>No LLM in the loop. Corpus R with weak labels in Phase 1; Corpus S with exact injected labels in Phase 2.</p></div></header>
+<div class="body">
+<ol class="steps">
+<li><b>Build the weak-label model (R).</b> Labelling functions over each event: <code>jira_priority ∈ {Blocker, Critical}</code>; subject matches <code>[VOTE]</code>, <code>[URGENT]</code>, <code>CVE-</code>, <code>release blocker</code>; committer replied within 1 h (derived from the reply graph, using the <em>later</em> event); issue resolved within 24 h; PR merged within 24 h of open. Fit a Snorkel-style label model; output a probabilistic label per event plus each function's estimated accuracy and coverage.</li>
+<li><b>Inject situations (S).</b> From OrgForge's scenario config: dispute on a VIP account, production incident with paging, churn signal (plan downgrade after failed invoice), security report — ≥ 4 archetypes, ≥ 50 each, onset timestamps and cost weights recorded. Add hard negatives: benign volume spikes on the same entities, chit-chat bursts.</li>
+<li><b>Tune θ on the tuning slice</b> (R: Jan–Feb; S: first 20 simulated days) to hit the budget b; freeze per-source θ, the absolute floor (events per 5-min bucket) and the two window lengths in PREREG.</li>
+<li><b>Replay the probe period</b> through each router policy R0–R5 at each b, recording per event: score, lane, decision time, window ids. Same replay file, same order.</li>
+<li><b>Score.</b> recall@budget and precision@budget per source; VUS-PR and affiliation P/R via the reference implementations; NAB under low-FN profile; detection delay per situation (onset → first fast admission on that entity).</li>
+<li><b>Robustness.</b> Re-score after jittering onsets ±5 min and flipping 10 % of weak labels; re-score with a uniform-random scorer and an always-flag scorer.</li>
+<li><b>Harm check</b> (Phase 2, needs a store): for each R4-promoted event, run the fast-lane task twice — at admission time and at that entity's next window close — and grade both with <code>grade_action.py</code>. Report the paired delta.</li>
+</ol>
+<div class="check"><div class="lbl">Validity checks — the evaluation is trusted only if</div><ul>
+<li>Label-model diagnostics show no single labelling function with estimated accuracy &lt; 0.6 or coverage &lt; 1 %; conflicts between functions are reported, and agreement between the outcome-based functions (reply-within-1h, resolved-within-24h) and the declared-priority function is stated as a number — this is the thesis's own measurement of priority-label noise.</li>
+<li>The random scorer's precision@budget ≈ prevalence and its VUS-PR ≈ prevalence; the always-flag scorer's recall = 1 with precision = prevalence. If any metric ranks either near R4, that metric is dropped.</li>
+<li>Injected situations are not trivial: R1 (rules-only) must not reach recall@2 % &gt; 0.9 on them, otherwise the injections are too easy and are regenerated with subtler features.</li>
+<li>θ was tuned only on the tuning slice: the PREREG commit predates the first probe-period run (git timestamps).</li>
+<li>Metric implementations are validated on three hand-constructed toy series with known VUS/affiliation values before use.</li>
+</ul></div>
+</div></div>
+</section>
+
+<!-- ============ E2 ============ -->
+<section id="e2">
+<div class="exp">
+<header><div class="id">E2</div><div><h3>State fidelity — how it is run</h3><p>Same read agent, same 8k read budget, different sources of truth to read from.</p></div></header>
+<div class="body">
+<ol class="steps">
+<li><b>Generate probes</b> (300 per corpus, 60 per family) from the probe generators; freeze <code>probes/kafka.jsonl</code> with its hash in PREREG.</li>
+<li><b>Materialise each arm</b> at each probe's T: A1 = last-N events of the entity before T from the replay; A2 = BM25 index over all events before T; A3 = embedding index over the same; A4 = <code>git checkout snapshot(T)</code> of the store. A0 receives nothing.</li>
+<li><b>Ask.</b> One read-agent run per (probe, arm): system prompt "answer from the provided material only; say UNKNOWN if not present; cite IDs". Material truncated to the budget; token count logged. For A4 the agent starts at INDEX.md/OVERVIEW.md and may open files within budget.</li>
+<li><b>Grade</b> with the grader matching <code>gold_type</code>; for update probes also check whether any <code>superseded_values[]</code> appear in the answer (supersession error); for abstention probes, UNKNOWN is the only correct answer.</li>
+<li><b>Aggregate.</b> Macro accuracy over families; paired A4 − A3 differences with entity-clustered bootstrap CI; McNemar on the binary correctness; secondary: supersession error rate, abstention precision, tokens read, latency.</li>
+</ol>
+<div class="check"><div class="lbl">Validity checks</div><ul>
+<li><b>Gold is re-derivable two ways.</b> Temporal and update gold is computed by two independent implementations (a Python replay of the changelog, and a SQL query over the raw JIRA export); any disagreement is investigated before the probe is kept.</li>
+<li><b>Probes are answerable from the raw log.</b> The retrieve-everything floor (the entity's full event history, no budget) must reach ≥ 0.9 macro accuracy; a probe it fails is reviewed and usually dropped as ill-posed.</li>
+<li><b>Probes are not answerable from memory.</b> A0 (model prior) must score below 0.3 on temporal/update/multi-source families; probes A0 gets right are flagged as possibly contaminated and reported separately.</li>
+<li><b>Graders are deterministic and reproducible.</b> Running <code>grade_exact</code> twice on the same outputs must give identical results; the claim grader is run twice and disagreements (&lt; 2 % allowed) are resolved by a human.</li>
+<li><b>Pilot with humans.</b> 30 probes graded independently by two people and by the pipeline; pipeline-vs-human κ ≥ 0.8 required before scaling; the disagreement list is kept.</li>
+<li><b>Leakage gate</b> passes for 100 % of kept probes; the count of excluded probes is reported.</li>
+<li><b>Equal budget is real.</b> Logged token counts per arm must fall within ±10 % of 8k for all arms that fill the budget; any arm systematically under budget is noted.</li>
+</ul></div>
+</div></div>
+</section>
+
+<!-- ============ E3 ============ -->
+<section id="e3">
+<div class="exp">
+<header><div class="id">E3</div><div><h3>Store organisation — how it is run</h3><p>Six stores from the identical stream; E2 probes as the yardstick at three read budgets; health measured over replay time.</p></div></header>
+<div class="body">
+<ol class="steps">
+<li><b>Build S0, S1, S4 (no LLM).</b> S0: the fake harness writes one file per event under <code>events/YYYY/MM/DD/</code>. S1: a deterministic <code>templated_store.py</code> fills the seeded layout from structured fields (issue summary/status/assignee/components → OVERVIEW; every event → one timeline line; no synthesis). S4: embeddings over raw events, no files. Commit per window so <code>snapshot(T)</code> exists for each.</li>
+<li><b>Build S3 × 3 seeds</b> with the real builder at 60× replay, window per D7; the builder prompt and <code>CLAUDE.md</code> hashed into PREREG. One additional S3 with the Opus tier (seed 1). S2 (no INDEX/topics) and S5 (S3 + embeddings over files) only if budget remains.</li>
+<li><b>Health checkpoints.</b> At replay-time weeks 1, 2, 4, 8 (and end), run <code>store_health.py</code> on each store's snapshot and record the metrics; also run a fixed 60-probe subset at each checkpoint for the erosion curve.</li>
+<li><b>Run E2</b> against every store at budgets 2k / 8k / 32k (the read agent is the same for all).</li>
+<li><b>Cost accounting.</b> Builder tokens and $ from API usage records per run, summed per store; wall time per run; files touched per run.</li>
+<li><b>Analyse.</b> Accuracy-vs-budget curve per store; primary contrast S3 vs S1 and S3 vs S4 at 8k, paired per probe, clustered by entity, across seeds; between-seed variance of both accuracy and health metrics; erosion slope per store.</li>
+</ol>
+<div class="check"><div class="lbl">Validity checks</div><ul>
+<li><b>Same input, provably:</b> the replay hash and the delivered-event-id list are identical across stores (diff of the builder ledger).</li>
+<li><b>Health metrics are unit-tested</b> on synthetic stores with planted defects (a dangling link, a duplicate fact, a superseded value left in OVERVIEW) — each must be detected.</li>
+<li><b>S1 is a fair baseline:</b> a human reviews 20 S1 entity folders and confirms every structured field from the events is present; if S1 is missing information available in the events, it is fixed before comparison.</li>
+<li><b>S4 is a fair baseline:</b> embedding model and chunking stated; recall@k of the gold <code>source_event_ids</code> reported so a weak retriever cannot be mistaken for a weak paradigm.</li>
+<li><b>Seeds matter:</b> if between-seed accuracy spread of S3 exceeds the S3 − S1 gap, the conclusion is "no reliable difference", stated as such.</li>
+<li><b>Builder failures are counted:</b> runs that hit the DLQ or were rolled back are reported per store; a store with &gt; 5 % failed folds is rebuilt after the cause is fixed, and the fix is an amendment.</li>
+</ul></div>
+</div></div>
+</section>
+
+<!-- ============ E4 ============ -->
+<section id="e4">
+<div class="exp">
+<header><div class="id">E4</div><div><h3>Context envelope — how it is run</h3><p>Store S3 fixed; agent fixed; only the envelope varies. Gold = what humans actually did (R) or what is correct by construction (S).</p></div></header>
+<div class="body">
+<ol class="steps">
+<li><b>Select tasks.</b> <span class="pill fast">FAST</span> R: 150 events from the probe period that the rules floor promotes (new Blocker/Critical issue, <code>[VOTE]</code> thread, CVE mention) and for which the human next step exists in the log after T (assignee set, component set, duplicate link, first committer reply). S: 150 injected situations with scripted correct handling. <span class="pill batch">BATCH</span> 150 windows sampled from the probe period, each paired with the E2 probes of its entity for T = window close.</li>
+<li><b>Materialise envelopes V0–V8</b> from <code>snapshot(T)</code>; log token counts per section. V5 additionally exposes the read tools; V6 concatenates all entity files; V7 appends <code>superseded.md</code> bodies; V8 shuffles sections and places state mid-prompt.</li>
+<li><b>Run.</b> Fast tasks: the harness with the typed output schema (fields + drafted reply + cited IDs); 3 runs per task for pass^3. Batch windows: the builder with envelope V-x; the resulting delta is applied to a scratch copy and the entity's E2 probes are asked against it.</li>
+<li><b>Grade.</b> Fast: assignee@3 / component / duplicate exact match; fact coverage of required IDs; reply quality by ROUGE-L against the human reply plus a pairwise judge in both orders. Batch: E2 accuracy of the post-delta state; evidence-citation validity (every <code>evidence_event_ids</code> exists and predates T).</li>
+<li><b>Analyse.</b> Composite per envelope; primary contrasts V3 vs V1 and V3 vs V6, paired per task; cost per envelope; reliability pass^3; V7 vs V3 (distractor effect) and V8 vs V3 (position effect) as named secondaries.</li>
+</ol>
+<div class="check"><div class="lbl">Validity checks</div><ul>
+<li><b>Gold actions are human, not bot:</b> triage fields set by known bot accounts (e.g. GitHub integration users) are excluded; the list of excluded accounts is published.</li>
+<li><b>Gold exists after T, never before:</b> the gate checks the human action's timestamp &gt; T and that no envelope contains it.</li>
+<li><b>Judge is calibrated:</b> 200 pairwise judgements also made by two humans; κ(judge, human) ≥ 0.6 required per corpus, else reply quality is reported by ROUGE only and the judge is dropped.</li>
+<li><b>Position bias cancelled:</b> a win is counted only if it survives both orderings.</li>
+<li><b>Envelopes land in their intended sizes:</b> V3 median ≤ 12k tokens; V6 median ≥ 3 × V3; any overlap invalidates the size contrast and is fixed.</li>
+<li><b>Task balance:</b> per-archetype counts and per-source counts are reported; no archetype exceeds 40 % of tasks.</li>
+</ul></div>
+</div></div>
+</section>
+
+<!-- ============ E5 ============ -->
+<section id="e5">
+<div class="exp">
+<header><div class="id">E5</div><div><h3>Cadence and economics — how it is run</h3><p>Same stream, same builder, same layout; only the incorporation cadence differs.</p></div></header>
+<div class="body">
+<ol class="steps">
+<li><b>Configure six cadences</b> via the classifier settings: W1 (every event fast), W5/W20/W50 (window caps, gap and max-age scaled), W20+rules, W20+rules+deviation. W1 is run only on the last 1,000 events of the window to bound cost.</li>
+<li><b>Build</b> each cadence's store (2 seeds) with usage logging on every run.</li>
+<li><b>Freshness.</b> For every event, find the first commit whose diff mentions its id; delay = commit's replay-time − event time. Report p50/p95 separately for weak-label-positive events and the rest.</li>
+<li><b>Fidelity.</b> Run the 300 E2 probes against each cadence's final store; run <code>store_health.py</code> (fragmentation: files per entity, duplicate facts).</li>
+<li><b>Plot</b> cost per 1,000 events (x) against accuracy and against freshness (y), one point per cadence, with CIs.</li>
+</ol>
+<div class="check"><div class="lbl">Validity checks</div><ul>
+<li>Cost comes from provider usage records, not estimates; the exchange rate and model prices are frozen in PREREG.</li>
+<li>Freshness uses the replay clock (intended timestamps), not wall-clock, so speed-up does not distort it; a pass-through calibration (events with no builder) must show ≈ 0 delay.</li>
+<li>Window counts are verified: the number of builder runs per cadence must match the classifier's window-close count in its log.</li>
+<li>If W20 and W1 accuracies are within CI, the claim "amortisation without loss" is supported; if W1 is significantly better, the thesis reports the price of freshness rather than hiding it.</li>
+</ul></div>
+</div></div>
+</section>
+
+<!-- ============ E6 ============ -->
+<section id="e6">
+<div class="exp">
+<header><div class="id">E6</div><div><h3>Throughput, tail latency and bursts — how it is run</h3><p>Fake harness, open-loop generator on a separate machine, HdrHistogram, burst shapes from the real distributions.</p></div></header>
+<div class="body">
+<ol class="steps">
+<li><b>Fit the workload.</b> From Corpus R (and GH Archive for volume), fit per-entity inter-arrival distributions, the entity popularity (Zipf) curve, and the burstiness B with its finite-size correction; record them.</li>
+<li><b>Generate shapes:</b> steady at rates {0.25, 0.5, 1, 2, 4}× the fitted mean; benign flash crowd (volume ×5 for 10 min, type mix unchanged); anomalous burst (type-mix shift on 3 hot entities); Zipf-skewed hot entities; flash crowd + worker kill at peak. Pareto ON/OFF per entity, calibrated so the realised B matches the fitted value; also a Poisson (B → 0) control.</li>
+<li><b>Run</b> each shape for two-lane (R4 router) and single-lane (everything to one topic, one builder path), with partition counts {8, 32} and worker counts {1, 4}; 25 % warm-up; ≥ 3 repetitions.</li>
+<li><b>Measure</b> at the boundaries: producer→Kafka for throughput; fast-lane agent-start and batch fold-commit for latency, both against <code>intended_send_ts</code>; Kafka consumer lag per partition; DLQ counts; duplicates delivered.</li>
+<li><b>Find the knee:</b> the highest steady rate at which p99 fast-lane latency has ~zero trend over the measurement window and lag does not grow; then run the burst shapes at 1.0× and 1.5× that knee.</li>
+<li><b>Guard ablation</b> under the anomalous burst: remove the absolute floor, the multi-window confirmation, and the situation dedup one at a time; plot fast-lane admission rate and urgent-event SLO compliance on one time axis.</li>
+</ol>
+<div class="check"><div class="lbl">Validity checks</div><ul>
+<li><b>No coordinated omission:</b> the generator's actual send timestamps must track the intended schedule within 1 ms at p99; if the generator itself lags, the run is invalid.</li>
+<li><b>Calibration run:</b> a pass-through pipeline with a fixed 10 ms sleep must report p50 ≈ 10 ms and a flat p99; this validates the clock, the histogram and the measurement points.</li>
+<li><b>The engine is what is measured:</b> the fake harness's service time is constant and logged; broker CPU and disk are monitored and reported so a broker bottleneck is visible rather than mistaken for the engine's.</li>
+<li><b>B → 0 control:</b> the two-lane advantage must shrink toward zero under Poisson load; if it does not, the "gain" is headroom, and the thesis says so.</li>
+<li><b>Repetitions agree:</b> p99 across the 3 repetitions within 20 %; otherwise the environment is unstable and the runs are repeated on quieter hardware.</li>
+</ul></div>
+</div></div>
+</section>
+
+<!-- ============ META ============ -->
+<section id="meta">
+<h2><span class="k">Meta-evaluation</span>How we know the evaluation itself is right</h2>
+<div class="tablewrap"><table>
+<tr><th>Risk to the evaluation</th><th>What we do</th><th>Evidence in the thesis</th></tr>
+<tr><td>Gold is wrong</td><td>Two independent derivations for temporal gold; human audit of 200 probes and 100 actions with two annotators</td><td>Derivation agreement rate; annotator κ; list of corrected probes</td></tr>
+<tr><td>Probes are unanswerable or trivial</td><td>Retrieve-everything floor ≥ 0.9; model-prior floor ≤ 0.3 on non-extraction families; pilot κ ≥ 0.8</td><td>Floor scores per family; number of probes dropped and why</td></tr>
+<tr><td>Future information leaks in</td><td>Per-probe leakage gate on delivered events and question text; θ tuned on a disjoint slice; PREREG predates runs</td><td>Gate pass counts; commit timestamps</td></tr>
+<tr><td>Grader is noisy or biased</td><td>Deterministic graders re-run for identity; claim grader run twice; judge from another family, position-swapped, κ-checked</td><td>Grader reproducibility; κ(judge, human) per corpus</td></tr>
+<tr><td>Metric is broken for this setting</td><td>Every metric run on random and always-flag scorers; toy-series validation; no point adjustment</td><td>Floor table; metrics dropped, if any</td></tr>
+<tr><td>Baselines are strawmen</td><td>S1 reviewed by a human for completeness; S4's retriever recall reported; same read agent and budget everywhere</td><td>S1 review notes; S4 recall@k</td></tr>
+<tr><td>Builder randomness masquerades as effect</td><td>3 seeds; between-seed spread compared to the effect; pass^3</td><td>Spread vs effect per contrast</td></tr>
+<tr><td>Statistics overclaim</td><td>Paired, entity-clustered bootstrap; McNemar; one primary metric per experiment; Holm for secondaries; power computed beforehand</td><td>CIs on every contrast; PREREG</td></tr>
+<tr><td>Cost hidden</td><td>Usage-record accounting; frozen prices</td><td>Cost next to every quality number</td></tr>
+<tr><td>Results are not reproducible</td><td>Frozen replay with hash; versioned prompts/schemas; snapshot SHAs; analysis notebooks; model IDs and dates</td><td>Reproducibility package</td></tr>
+</table></div>
+</section>
+
+<!-- ============ GATES ============ -->
+<section id="gates">
+<h2><span class="k">Gates</span>Go / no-go before spending money</h2>
+<div class="gate"><p><b>G1 — after the probe pilot (wk 2):</b> two-way gold agreement ≥ 98 %; pipeline-vs-human κ ≥ 0.8 on 30 probes; leakage gate passes 30/30; retrieve-everything ≥ 0.9; model prior ≤ 0.3 on temporal/update/multi-source. Any failure → fix generators, re-pilot. No store is built until G1 passes.</p></div>
+<div class="gate"><p><b>G2 — after the baseline stores (wk 4):</b> S0, S1, S4 built from the same replay hash; S1 human review complete; S4 recall@10 of gold source events ≥ 0.7; E2 on baselines shows spread between A1 and A3 (if all baselines tie, the probes are too easy → harder families weighted up). Only then the LLM-built S3 runs.</p></div>
+<div class="gate"><p><b>G3 — after S3 seed 1 (wk 5):</b> failed folds ≤ 5 %; health metrics stable (no runaway file growth); pilot E2 delta S3 − S1 has a CI that excludes zero in either direction on at least one family. Then seeds 2–3 and the Opus tier.</p></div>
+<div class="gate"><p><b>G4 — before E4/E5 (wk 7):</b> OrgForge replay validated the same way as R (G1 on its probes); injected situations pass the non-triviality check in E1.</p></div>
+<div class="gate"><p><b>Stop rule:</b> if at G3 the between-seed spread exceeds the S3 − S1 gap, the thesis's central result becomes "curation does not reliably beat templating at this scale", and Phase 2 prioritises E1/E6 (the two-lane contribution) over E4/E5.</p></div>
+</section>
+</main>
+</div>
