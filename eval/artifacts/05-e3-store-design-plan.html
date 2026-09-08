@@ -1,0 +1,429 @@
+<title>E3 Store Design Plan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+:root{
+  --bg:#f5f7f6; --paper:#ffffff; --ink:#18232b; --ink-2:#4a5860; --ink-3:#7b8890;
+  --rule:#d8dfdd; --rule-2:#e9eeec;
+  --acc:#0f6b6b; --acc-soft:#dcecea; --acc-ink:#0a4f4f;
+  --warm:#9a5b1e; --warm-soft:#f3e6d6;
+  --ok:#2c7a4b; --ok-soft:#dff0e4; --warn:#a56b00; --warn-soft:#f6ead0; --bad:#a83a32; --bad-soft:#f5dfdd;
+  --code-bg:#eef2f1;
+  --c-file:#0f6b6b; --c-graph:#7a4b9a; --c-rag:#9a5b1e; --c-floor:#7b8890;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#131a1d; --paper:#1a2226; --ink:#e6ebea; --ink-2:#b4bfbc; --ink-3:#7f8b89;
+    --rule:#2e3a3d; --rule-2:#25302f;
+    --acc:#5fc2bd; --acc-soft:#173a3a; --acc-ink:#9adfd9;
+    --warm:#dca265; --warm-soft:#3a2b18;
+    --ok:#6fcf8f; --ok-soft:#1c3526; --warn:#e2b04a; --warn-soft:#3b2f12; --bad:#ef8a80; --bad-soft:#3d1f1c;
+    --code-bg:#22302f;
+    --c-file:#5fc2bd; --c-graph:#b48ad6; --c-rag:#dca265; --c-floor:#7f8b89;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#131a1d; --paper:#1a2226; --ink:#e6ebea; --ink-2:#b4bfbc; --ink-3:#7f8b89;
+  --rule:#2e3a3d; --rule-2:#25302f;
+  --acc:#5fc2bd; --acc-soft:#173a3a; --acc-ink:#9adfd9;
+  --warm:#dca265; --warm-soft:#3a2b18;
+  --ok:#6fcf8f; --ok-soft:#1c3526; --warn:#e2b04a; --warn-soft:#3b2f12; --bad:#ef8a80; --bad-soft:#3d1f1c;
+  --code-bg:#22302f;
+  --c-file:#5fc2bd; --c-graph:#b48ad6; --c-rag:#dca265; --c-floor:#7f8b89;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:"Source Serif 4",Georgia,"Times New Roman",serif;font-size:17px;line-height:1.55;margin:0}
+a{color:var(--acc);text-decoration:none;border-bottom:1px solid var(--acc-soft)}
+a:hover{border-bottom-color:var(--acc)}
+a:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.wrap{display:grid;grid-template-columns:230px minmax(0,780px);gap:56px;max-width:1140px;margin:0 auto;padding:40px 28px 96px}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);gap:24px;padding:24px 18px 72px}nav.toc{position:static}}
+nav.toc{position:sticky;top:28px;align-self:start;font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:13px}
+nav.toc .eyebrow{margin-bottom:10px}
+nav.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--rule)}
+nav.toc li a{display:block;padding:5px 0 5px 12px;color:var(--ink-2);border:0;margin-left:-1px;border-left:2px solid transparent}
+nav.toc li a:hover{color:var(--ink);border-left-color:var(--acc)}
+main{min-width:0}
+h1,h2,h3,h4{font-family:"IBM Plex Sans",system-ui,sans-serif;text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:38px;font-weight:600;letter-spacing:-0.01em}
+h2{font-size:24px;font-weight:600;margin-top:64px;padding-top:18px;border-top:2px solid var(--ink)}
+h3{font-size:17px;font-weight:600;margin-top:32px}
+h4{font-size:15px;font-weight:600;margin-top:20px}
+p{margin:12px 0;max-width:68ch}
+ul,ol{max-width:68ch;padding-left:22px}
+li{margin:5px 0}
+li::marker{color:var(--ink-3)}
+.eyebrow{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:11.5px;font-weight:600;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink-3)}
+.lede{font-size:19px;color:var(--ink-2);max-width:66ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px 22px;font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:13px;color:var(--ink-2);margin-top:14px;padding-top:14px;border-top:1px solid var(--rule)}
+.meta b{color:var(--ink);font-weight:500}
+code,kbd{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.86em;background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:13px;line-height:1.5;background:var(--code-bg);padding:14px 16px;border-radius:4px;overflow-x:auto;margin:14px 0}
+.formula{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:13.5px;background:var(--code-bg);padding:12px 16px;border-left:3px solid var(--acc);margin:14px 0;overflow-x:auto;line-height:1.7}
+.tbl{overflow-x:auto;margin:16px 0;border:1px solid var(--rule);border-radius:4px;background:var(--paper)}
+table{border-collapse:collapse;width:100%;font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:13.5px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--rule-2)}
+th{font-weight:600;font-size:12px;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink-2);background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td code{font-size:12.5px}
+.pill{display:inline-block;font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:11px;font-weight:600;letter-spacing:0.04em;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.ok{background:var(--ok-soft);color:var(--ok)} .warn{background:var(--warn-soft);color:var(--warn)} .bad{background:var(--bad-soft);color:var(--bad)} .acc{background:var(--acc-soft);color:var(--acc-ink)} .neutral{background:var(--rule-2);color:var(--ink-2)}
+.fam{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.fam.file{background:var(--c-file)} .fam.graph{background:var(--c-graph)} .fam.rag{background:var(--c-rag)} .fam.floor{background:var(--c-floor)}
+.callout{background:var(--paper);border:1px solid var(--rule);border-left:4px solid var(--acc);padding:14px 18px;margin:18px 0;max-width:74ch}
+.callout.warm{border-left-color:var(--warm)}
+.callout p{margin:6px 0}
+.callout .eyebrow{color:var(--acc-ink)} .callout.warm .eyebrow{color:var(--warm)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0}
+.stat{background:var(--paper);border:1px solid var(--rule);padding:14px 16px}
+.stat .n{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:26px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat .l{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:12.5px;color:var(--ink-2);margin-top:6px}
+figure{margin:20px 0;background:var(--paper);border:1px solid var(--rule);padding:16px}
+figcaption{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:12.5px;color:var(--ink-2);margin-top:10px;max-width:72ch}
+svg text{font-family:"IBM Plex Sans",system-ui,sans-serif;fill:var(--ink)}
+svg .mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+svg .dim{fill:var(--ink-3)}
+.phase{display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;padding:16px 0;border-top:1px solid var(--rule)}
+.phase:last-of-type{border-bottom:1px solid var(--rule)}
+.phase .k{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:13px;color:var(--ink-2)}
+.phase .k b{display:block;color:var(--ink);font-size:15px;font-weight:600}
+.phase ul{margin:6px 0 0}
+.gate{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:13px;margin-top:8px;padding:8px 12px;background:var(--acc-soft);color:var(--acc-ink);border-radius:3px;max-width:70ch}
+.gate b{font-weight:600}
+.qs li{margin:10px 0}
+.qs b{font-family:"IBM Plex Sans",system-ui,sans-serif;font-weight:600}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <div class="eyebrow">Contents</div>
+  <ol>
+    <li><a href="#summary">Summary</a></li>
+    <li><a href="#question">1 · The question</a></li>
+    <li><a href="#space">2 · Design space</a></li>
+    <li><a href="#conditions">3 · Conditions</a></li>
+    <li><a href="#yardstick">4 · Yardstick</a></li>
+    <li><a href="#measure">5 · Measurements</a></li>
+    <li><a href="#stats">6 · Statistics and decision rule</a></li>
+    <li><a href="#stages">7 · Staged plan</a></li>
+    <li><a href="#interaction">8 · Harness, model, reader</a></li>
+    <li><a href="#cost">9 · Cost and time</a></li>
+    <li><a href="#code">10 · Code work</a></li>
+    <li><a href="#risks">11 · Risks</a></li>
+    <li><a href="#decisions">12 · Decisions for you</a></li>
+    <li><a href="#deliverables">13 · Deliverables</a></li>
+  </ol>
+</nav>
+
+<main>
+<div class="eyebrow">Two-lane context engine · Evaluation · Experiment 3, absorbing E2</div>
+<h1 style="margin-top:8px">E3 Store Design Plan</h1>
+<p class="lede">Which way of storing what the batch lane learns gives an agent the most correct context per token, on our kind of data, and does the answer depend on which agent builds it and which agent reads it? This experiment decides what the context engine's store will be. It replaces E2 and E3 as separately specified with one staged comparison of file-based, graph-based, and retrieval designs, judged by the same 600 derived-gold probes.</p>
+<div class="meta">
+  <span>Supersedes <b>E2 plan v3, spec §7 E2 and E3</b></span>
+  <span>Claims <b>C2 fidelity, C3 organisation</b></span>
+  <span>Corpus <b>Kafka R‑H1, 2026‑01 → 06</b></span>
+  <span>Headline <b>agent‑curated store vs templated files and vs vector RAG at 8 k</b></span>
+  <span>Status <b>plan, nothing registered</b></span>
+  <span>Prepared <b>2026‑09‑08</b></span>
+</div>
+
+<h2 id="summary" style="margin-top:40px">Summary</h2>
+<p>The experiment is a tournament with rules fixed in advance. Every store is built from the identical frozen stream, snapshotted after every fold, and read by the same tool-using reader under the same token budget. A frozen set of probes with gold derived from the JIRA changelog, PR metadata, and regex joins grades each store on five families: extraction, temporal, knowledge update, multi-source, and abstention. The stores are compared paired per probe, clustered by entity, with search cost and build cost beside every accuracy.</p>
+<p>It runs in stages so that money is spent on what earlier stages showed to matter. Stage A builds the yardstick and passes the human gate. Stage B runs the stores that cost nothing to build. Stage C sweeps eleven store structures with one builder. Stage D takes the top structures and rebuilds them with other harnesses and models to test the interaction you asked about. Stage E varies the reader on the top stores. Stage F confirms the winner on a second, sealed probe set with three seeds. The winner's-curse control is that second probe set: no store is declared best on the probes it was selected with.</p>
+<div class="grid2">
+  <div class="stat"><div class="n">17</div><div class="l">store conditions across four families: 3 floors, 4 retrieval, 8 file‑based, 2 graph</div></div>
+  <div class="stat"><div class="n">600</div><div class="l">probes: 300 for selection, 300 sealed for confirmation, 60 per family each</div></div>
+  <div class="stat"><div class="n">3 × 3</div><div class="l">builder harness × model grid on the top three structures; reader ladder on top three stores</div></div>
+  <div class="stat"><div class="n">2</div><div class="l">registered primaries: F5 − F1 and F5 − R‑vec at 8 k, valid only if |Δ| exceeds the seed spread</div></div>
+</div>
+<div class="callout">
+  <div class="eyebrow">What comes out the other end</div>
+  <p>A ranked table of store designs on a Pareto of accuracy, search cost, and build cost, with confidence intervals; a statement of whether the ranking is stable across builders and readers; and a registered mapping from outcome to implementation change in harnext. The store we currently ship, F5, enters as one condition among seventeen with no privilege beyond being named in the primaries.</p>
+</div>
+
+<h2 id="question">1 · The question</h2>
+<p>Two claims from the spec merge here. C2 says the batch lane keeps per-entity state that is correct and current with respect to facts re-derivable from the log. C3 says organising that state yields more correct context per token than unorganised alternatives and does not erode over weeks of stream. Testing C2 alone needed one store; testing C3 needs many, and every C2 metric is computed by the C3 machinery anyway. The merged question is:</p>
+<div class="callout warm">
+  <div class="eyebrow">Question</div>
+  <p>Given an identical heterogeneous event stream, which store design lets a fixed reader answer derived-gold questions most correctly per token read, at what build cost, and is that ordering stable when the builder agent, the builder model, and the reader agent change?</p>
+</div>
+<p><strong>Falsified outcomes are explicit.</strong> Curation loses to templating if F5 − F1 has an interval that includes zero or lies below the seed spread. Curation loses to RAG if F5 − R‑vec does. Organisation erodes if the fixed 60-probe panel's accuracy has a negative slope over replay weeks. Any of these is a result and goes into the thesis as such. E1 already produced a clean negative on C1; this experiment is designed to produce a clean answer either way.</p>
+<p><strong>What "best" means is registered before the run.</strong> A store is better than another only if its paired accuracy delta at 8 k has a bootstrap interval excluding zero, the delta exceeds the between-seed spread of the headline store, and the difference survives on the sealed confirmation set. Among stores that tie on accuracy, lower search cost per query wins; among those that still tie, lower build cost per thousand events wins. Section 6 gives the exact rule.</p>
+
+<h2 id="space">2 · Design space</h2>
+<p>Four axes. Full factorial is 17 stores × 3 harnesses × 3 models × 3 readers × 3 tool sets × 3 budgets, which is thousands of builds. The staged design in section 7 walks the axes one at a time and carries forward only what survived.</p>
+<figure>
+<svg viewBox="0 0 780 300" width="100%" role="img" aria-label="Design space: four axes with their levels, and which stage varies each">
+  <g font-size="12">
+    <rect x="10" y="10" width="180" height="280" rx="3" fill="var(--paper)" stroke="var(--rule)"/>
+    <text x="22" y="32" font-weight="600" font-size="13">What is stored</text>
+    <text x="22" y="48" class="dim" font-size="11">varied in stage B, C</text>
+    <text x="22" y="74"><tspan fill="var(--c-floor)">■</tspan> floors: A0, everything, nothing</text>
+    <text x="22" y="94"><tspan fill="var(--c-rag)">■</tspan> retrieval: tail, BM25, vec, hybrid</text>
+    <text x="22" y="114"><tspan fill="var(--c-file)">■</tspan> files, code‑built: F0, F1</text>
+    <text x="22" y="134"><tspan fill="var(--c-file)">■</tspan> files, LLM‑organised:</text>
+    <text x="34" y="150" class="mono" font-size="11">F2 F3 F4 F5 F6 F7</text>
+    <text x="22" y="170"><tspan fill="var(--c-graph)">■</tspan> graph: G1 temporal KG, G2 LightRAG</text>
+    <text x="22" y="190"><tspan fill="var(--c-file)">■</tspan> hybrid: H1 = F5 + embeddings</text>
+
+    <rect x="205" y="10" width="180" height="280" rx="3" fill="var(--paper)" stroke="var(--rule)"/>
+    <text x="217" y="32" font-weight="600" font-size="13">Who builds it</text>
+    <text x="217" y="48" class="dim" font-size="11">varied in stage D</text>
+    <text x="217" y="74">harness</text>
+    <text x="229" y="90" class="mono" font-size="11">claude_code (Agent SDK)</text>
+    <text x="229" y="106" class="mono" font-size="11">codex (CLI)</text>
+    <text x="229" y="122" class="mono" font-size="11">claude_code, shell‑only tools</text>
+    <text x="217" y="148">model</text>
+    <text x="229" y="164" class="mono" font-size="11">claude-sonnet-5</text>
+    <text x="229" y="180" class="mono" font-size="11">claude-opus-5</text>
+    <text x="229" y="196" class="mono" font-size="11">gpt-5.x (via codex)</text>
+    <text x="217" y="222">prompt</text>
+    <text x="229" y="238" class="mono" font-size="11">fixed per structure, hashed</text>
+
+    <rect x="400" y="10" width="180" height="280" rx="3" fill="var(--paper)" stroke="var(--rule)"/>
+    <text x="412" y="32" font-weight="600" font-size="13">Who reads it</text>
+    <text x="412" y="48" class="dim" font-size="11">fixed in B–D, varied in stage E</text>
+    <text x="412" y="74">reader model</text>
+    <text x="424" y="90" class="mono" font-size="11">haiku-4.5 · sonnet-5 · opus-5</text>
+    <text x="412" y="116">tool set</text>
+    <text x="424" y="132" class="mono" font-size="11">file‑native (view, grep, toc)</text>
+    <text x="424" y="148" class="mono" font-size="11">file‑native + BM25</text>
+    <text x="424" y="164" class="mono" font-size="11">shell</text>
+    <text x="412" y="190">budget, tokens read</text>
+    <text x="424" y="206" class="mono" font-size="11">2 k · 8 k (primary) · 32 k</text>
+    <text x="412" y="232">prompt, temperature</text>
+    <text x="424" y="248" class="mono" font-size="11">fixed, 0</text>
+
+    <rect x="595" y="10" width="175" height="280" rx="3" fill="var(--paper)" stroke="var(--rule)"/>
+    <text x="607" y="32" font-weight="600" font-size="13">Held constant</text>
+    <text x="607" y="48" class="dim" font-size="11">never varied</text>
+    <text x="607" y="74">stream: R‑H1 slice, hashed</text>
+    <text x="607" y="94">windowing: 30 s / 20 ev / 120 s</text>
+    <text x="607" y="114">snapshot per fold, git</text>
+    <text x="607" y="134">600 probes, hashed</text>
+    <text x="607" y="154">graders, gate, stats code</text>
+    <text x="607" y="174">prices, model ids, dates</text>
+    <text x="607" y="194">seeds 1–3 on headline</text>
+  </g>
+</svg>
+<figcaption>The store axis is swept first with everything else fixed. The builder and reader axes are then varied only on the structures that survived, which is where an interaction can be seen without paying for the full grid.</figcaption>
+</figure>
+
+<h2 id="conditions">3 · Conditions</h2>
+<p>Seventeen stores. Each row states what the reader sees at <code>snapshot(T)</code>, who builds it, how a snapshot at an arbitrary T is obtained, and the stage that first runs it. The file-based rows follow the taxonomy of Zhou et al. 2026, extended with the two structures our engine and the RQ5 survey argue for.</p>
+<div class="tbl"><table>
+<thead><tr><th>ID</th><th>Store</th><th>Built by</th><th>Layout and format</th><th>Snapshot(T)</th><th>Isolates</th><th>Stage</th></tr></thead>
+<tbody>
+<tr><td><span class="fam floor"></span>A0</td><td>Closed book</td><td>—</td><td>question only</td><td>n/a</td><td>model prior floor</td><td>B</td></tr>
+<tr><td><span class="fam floor"></span>ALL</td><td>Retrieve everything</td><td>—</td><td>entity's full history ≤ T, no budget, capped at context</td><td>replay filter</td><td>answerability ceiling</td><td>B</td></tr>
+<tr><td><span class="fam floor"></span>NIL</td><td>Retrieve nothing</td><td>—</td><td>empty material</td><td>n/a</td><td>prompt and grader floor</td><td>B</td></tr>
+<tr><td><span class="fam rag"></span>R‑tail</td><td>Last‑N events</td><td>code</td><td>entity's last 20 and last 100 raw events</td><td>replay filter</td><td>doing nothing at write time</td><td>B</td></tr>
+<tr><td><span class="fam rag"></span>R‑bm25</td><td>Chunk retrieval, lexical</td><td>code</td><td>BM25 top‑k over all events ≤ T, one event per chunk</td><td>time mask on one index</td><td>lexical RAG</td><td>B</td></tr>
+<tr><td><span class="fam rag"></span>R‑vec</td><td>Chunk retrieval, dense</td><td>code + pinned embeddings</td><td>top‑k by cosine, <code>voyage‑3‑large</code>, same chunks</td><td>time mask</td><td>dense RAG <span class="pill acc">primary comparator</span></td><td>B</td></tr>
+<tr><td><span class="fam rag"></span>R‑hyb</td><td>Hybrid retrieval</td><td>code</td><td>reciprocal‑rank fusion of R‑bm25 and R‑vec</td><td>time mask</td><td>the strongest zero‑LLM retriever</td><td>B</td></tr>
+<tr><td><span class="fam file"></span>F0</td><td>Verbatim dump</td><td>code</td><td><code>events/YYYY/MM/DD/&lt;id&gt;.md</code>, one file per event, frontmatter = event metadata</td><td>commit per fold</td><td>the filesystem alone</td><td>B</td></tr>
+<tr><td><span class="fam file"></span>F1</td><td>Templated per entity</td><td>code</td><td><code>entities/&lt;subject&gt;/{OVERVIEW,timeline}.md</code>; OVERVIEW from structured fields, one timeline line per event, no synthesis; human‑reviewed for completeness</td><td>commit per fold</td><td>whether the LLM adds anything <span class="pill acc">primary comparator</span></td><td>B</td></tr>
+<tr><td><span class="fam file"></span>F2</td><td>LLM‑foldered dump</td><td>LLM, move‑only</td><td>F0's files moved into an agent‑designed folder taxonomy; no content edits; weekly reorganisation pass</td><td>weekly checkpoint commit</td><td>taxonomy as the only added signal</td><td>C</td></tr>
+<tr><td><span class="fam file"></span>F3</td><td>Reorganised, preserve</td><td>LLM, periodic</td><td>F0 rewritten weekly into per‑entity and topic files under a "keep every fact" rule; the consolidation‑cadence design</td><td>weekly checkpoint commit</td><td>periodic consolidation vs per‑window curation</td><td>C</td></tr>
+<tr><td><span class="fam file"></span>F4</td><td>Curated flat</td><td>LLM, per fold</td><td><code>entities/&lt;subject&gt;/{OVERVIEW,facts,timeline,superseded}.md</code>; no INDEX, no topics, no cross‑links</td><td>commit per fold</td><td>curation without global structure</td><td>C</td></tr>
+<tr><td><span class="fam file"></span>F5</td><td>Curated + index</td><td>LLM, per fold</td><td>the seeded harnext layout: <code>INDEX.md</code>, <code>topics/</code>, <code>_meta/schema.md</code>, cross‑links, 200‑line cap</td><td>commit per fold</td><td>global organisation <span class="pill acc">headline, current engine</span></td><td>C</td></tr>
+<tr><td><span class="fam file"></span>F6</td><td>Curated free‑form</td><td>LLM, per fold</td><td>empty store, no seeded layout, only the goal in <code>CLAUDE.md</code>; the agent invents its own structure</td><td>commit per fold</td><td>whether our layout helps or hinders the agent</td><td>C</td></tr>
+<tr><td><span class="fam file"></span>F7</td><td>Wiki with fact ledger</td><td>LLM, per fold</td><td>pages with backlinks, an index, a change log, and a machine‑readable <code>facts.yaml</code> per entity with <code>valid_from / valid_to / source_ids</code>; the bitemporal format from RQ5 in files</td><td>commit per fold</td><td>structured facts beside prose; supersession by construction</td><td>C</td></tr>
+<tr><td><span class="fam graph"></span>G1</td><td>Temporal knowledge graph</td><td>LLM extraction</td><td>Graphiti‑style entities and edges with <code>t_valid_from / t_valid_to / t_ingested</code>; reader tools: search nodes, search edges, neighbourhood</td><td>native as‑of‑T filter on <code>t_ingested</code></td><td>the graph alternative with native supersession</td><td>C</td></tr>
+<tr><td><span class="fam graph"></span>G2</td><td>Graph + vector, LightRAG</td><td>LLM extraction</td><td>LightRAG dual‑level retrieval, incremental insert; reader tool: query</td><td>weekly checkpoint</td><td>the popular open‑source graph RAG</td><td>C</td></tr>
+<tr><td><span class="fam file"></span>H1</td><td>Curated + embeddings</td><td>F5 + pinned embeddings</td><td>F5's files chunked by section and embedded; reader gets file tools plus semantic search</td><td>as F5</td><td>retrieval on top of curation</td><td>C</td></tr>
+</tbody></table></div>
+<p><strong>Reader tools per family.</strong> Fairness means equal budget and equal reader, not identical tools, because a graph cannot be read with <code>cat</code>. File stores get view, regex search, table of contents, and section read. Retrieval stores get one search tool returning ranked chunks. Graph stores get their native query tools. Every tool's return is counted against the same token budget, and the reader stops when the budget is spent.</p>
+<p><strong>Periodic designs.</strong> F2, F3, and G2 do not fold per window; they consolidate weekly. That is a real design alternative, the "sleep-time" consolidation pattern, and it is registered as such. Their snapshot at T is the last weekly checkpoint, so they carry up to seven days of staleness by construction. The freshness metric records it; the accuracy metric does not forgive it.</p>
+<p><strong>Cut order if budget runs out</strong>, registered: H1, then G2, then F2, then F4. F0, F1, and all retrieval rows are free and never cut. F5, F6, F7, F3, and G1 are the core of the answer and are cut last.</p>
+
+<h2 id="yardstick">4 · Yardstick</h2>
+<p>Unchanged from the E2 plan except for size and the split. The corpus is the R‑H1 slice of the frozen Kafka replay: 37,719 events, January to April warm-up, May to June probe period. Probe families, gold sources, and graders are the E2 ones: extraction, temporal, knowledge update with superseded values, multi-source including code location, abstention. Gold is derived twice, by Python changelog replay and by SQL over the raw JIRA export, and a probe is kept only if both agree.</p>
+<p><strong>600 probes, two sealed sets.</strong> With seventeen conditions and later a builder grid, picking the best store on the probes it was scored on inflates its accuracy. So two sets of 300, each 60 per family and ≥ 150 entities, are generated and hashed together, and the confirmation set's hash is registered while its content stays unopened until stage F. The corpus supports it: 421 issues touched in the probe period, 187 issues with repeated status transitions, 242 merged PRs carrying an issue key.</p>
+<p><strong>Reader agent.</strong> One reader for stages B to D: <code>claude-sonnet-5</code>, temperature 0, fixed system prompt, file-native tools, budget on tokens read, 8 k primary with 2 k and 32 k as the accuracy-versus-budget curve. This is a change from the E2 code, where A4 was a deterministic walk. Zhou et al. found reader capability to be the dominant lever on answer quality, so a fixed heuristic reader would blind the experiment to exactly the effect organisation is supposed to have.</p>
+<p><strong>Gates before any LLM build</strong>, all from the spec and all able to fail: dual-gold agreement ≥ 98 %; retrieve-everything ≥ 0.9 macro; A0 ≤ 0.3 per family on temporal, update, and multi-source; 30-probe two-human pilot with κ ≥ 0.8; leakage gate 100 % on kept probes; equal budget within ±10 % for arms that fill it.</p>
+
+<h2 id="measure">5 · Measurements</h2>
+<h3>Accuracy</h3>
+<div class="formula">correct(p)   = 1[norm(answer) = norm(gold)]   extraction · temporal · update · abstention<br>link_F1(p)   for multi‑source; file F1 and module hit for code‑location, folded into multi‑source<br>acc_family(S, B) = mean correct over the family, store S, budget B<br><b>macro(S, B)  = mean over the five families</b>                       ← the quantity every contrast is on</div>
+<h3>Fidelity, the former E2 secondaries</h3>
+<div class="formula">supersession_error(S)   = |{p ∈ update : a superseded value appears in the answer}| / |update|<br>abstention_precision(S) = |{p ∈ abstention : answer = UNKNOWN}| / |abstention|<br>temporal_acc(S)         = acc_family(temporal)<br>freshness(S)            = median(event_time → first snapshot whose diff references the event id)</div>
+<h3>Cost, beside every accuracy</h3>
+<div class="formula">search_tokens(S, B) = mean tokens read per probe (tool returns + material)   ← organisation's payoff in Zhou et al.<br>tool_calls(S, B)    = mean tool rounds per probe<br>latency(S, B)       = median wall seconds per probe<br>build_cost(S)       = Σ(tokens_in + tokens_out) over folds, and $ per 1,000 events at frozen prices<br>build_wall(S)       = hours; failed_folds(S) = rolled‑back or DLQ folds / folds</div>
+<h3>Store health, at replay weeks 1, 2, 4, 8, and end</h3>
+<div class="formula">files, bytes, files per entity, over_cap = files &gt; 200 lines / files<br>index_acc = resolving INDEX entries / entries;  dangling = unresolved refs / refs<br>dup_rate  = MinHash near‑duplicate fact lines (Jaccard ≥ 0.8) / fact lines<br>leak_rate = entities with a superseded value still in OVERVIEW / entities with ≥ 1 supersession<br>B4        = Spearman(tree distance, lexical relatedness) over section pairs      ← Zhou et al. taxonomy adherence<br>scope_leak = share of sections lexically nearer a sibling file than their parent<br>erosion_slope(S) = OLS slope of the fixed 60‑probe panel's accuracy over replay weeks</div>
+<p>Graph stores report the analogues: node and edge counts, edges with closed validity intervals as the supersession measure, orphan nodes as the dangling measure, duplicate entity rate after resolution.</p>
+
+<h2 id="stats">6 · Statistics and decision rule</h2>
+<p>Every contrast is paired per probe on the identical snapshot, with a BCa bootstrap of 10,000 resamples clustered by entity, and a McNemar test on binary correctness. Entity clusters are primary; probe-family and calendar-week clusters are reported as sensitivity, because the E1 run 4 conclusion moved under a different clustering.</p>
+<h3>Registered primaries, at 8 k, on the selection set, then the confirmation set</h3>
+<div class="formula">P1 = macro(F5) − macro(F1)      curation vs templating<br>P2 = macro(F5) − macro(R‑vec)   curation vs dense RAG<br>each valid only if |P| &gt; seed_spread(F5) = SD of macro(F5) over seeds 1–3<br>practical threshold |P| ≥ 0.05, registered</div>
+<h3>The sweep</h3>
+<p>All other stores are compared with F5 and with F1 in one Holm-corrected family of contrasts per budget. The output is not one winner but a ranked table with intervals, and the ranking is read with the rule below.</p>
+<h3>Selection and confirmation</h3>
+<ol>
+<li>On the selection set, compute macro at 8 k for every store; keep the set of stores whose interval against the top store includes zero. That is the candidate set, not one winner.</li>
+<li>Rebuild nothing. Run the candidate stores, plus F1 and R‑vec, on the sealed confirmation set. Report the confirmation numbers as the headline; the selection numbers as a secondary.</li>
+<li>Rank candidates by confirmation macro. Ties, meaning intervals that include zero pairwise, are broken by search tokens per query, then by build cost per thousand events.</li>
+<li>Stability: the winner must remain in the candidate set under at least two of the three builder cells in stage D and under the Sonnet and Opus readers in stage E. A winner that only wins for one builder or one reader is reported as conditional.</li>
+</ol>
+<h3>Outcome to implementation, registered now</h3>
+<div class="tbl"><table>
+<thead><tr><th>If the confirmed winner is…</th><th>Then harnext changes…</th></tr></thead>
+<tbody>
+<tr><td>F5 or H1</td><td>Nothing structural. Tune the builder prompt from the health metrics; add embeddings over files if H1 won.</td></tr>
+<tr><td>F6 or F7</td><td>Replace the seeded layout with the winning one; F7 adds the fact ledger and makes supersession a format rule rather than a prompt rule.</td></tr>
+<tr><td>F3</td><td>Batch lane becomes dump‑then‑consolidate: F0 per window, an LLM consolidation pass on a cadence; E5 then sizes the cadence.</td></tr>
+<tr><td>F1 or any retrieval row</td><td>The LLM builder is removed from the write path. The engine becomes templated files or a warehouse plus retriever, and the thesis reports a negative on C3 with mechanism, as it did on C1.</td></tr>
+<tr><td>G1 or G2</td><td>The store becomes a graph with a file projection for inspectability; the MCP surface changes to graph queries.</td></tr>
+<tr><td>Conditional on builder or reader</td><td>The engine pins the builder and reader the winner needs, and the thesis states the dependence as a finding.</td></tr>
+</tbody></table></div>
+
+<h2 id="stages">7 · Staged plan</h2>
+<p>Each stage ends in a gate. The number of LLM-built stores is the cost driver, so the plan is ordered to learn the per-build cost early and to build only what earlier stages showed to matter.</p>
+
+<div class="phase"><div class="k"><b>Stage A</b>Yardstick<br>3–4 days</div><div>
+<ul>
+<li>Code work items 1–7 in section 10. Slice the replay to R‑H1, hash it against the parent hash.</li>
+<li>Generate 600 probes with dual gold, join audit, and A0 audit; split into selection and confirmation; hash both; seal the confirmation set.</li>
+<li>Run ALL and A0 on the selection set, about 600 calls.</li>
+<li>Human pilot: 30 selection probes, two annotators, κ.</li>
+</ul>
+<div class="gate"><b>Gate A:</b> dual gold ≥ 98 %; ALL ≥ 0.9; A0 ≤ 0.3 per named family; κ ≥ 0.8; leakage 300/300. No store is built before this passes. This is the gate E1 deferred four times.</div>
+</div></div>
+
+<div class="phase"><div class="k"><b>Stage B</b>Free tier<br>2 days</div><div>
+<ul>
+<li>Build F0 and F1 with code through the replay driver; commit per fold. This yields the exact fold count and the ledger every later store must match.</li>
+<li>Index R‑bm25 and R‑vec once over the slice; R‑hyb from both.</li>
+<li>Run the reader on R‑tail, R‑bm25, R‑vec, R‑hyb, F0, F1, NIL at 2 k, 8 k, 32 k on the selection set. About 6,300 reader calls.</li>
+<li>Human review of 20 F1 entity folders for completeness; fix gaps before comparison.</li>
+</ul>
+<div class="gate"><b>Gate B:</b> R‑vec recall@10 of gold source ids ≥ 0.7; a spread exists between R‑tail and R‑vec; F1 review complete. If every free store ties, the probes are too easy and families are re‑weighted before stage C.</div>
+</div></div>
+
+<div class="phase"><div class="k"><b>Stage C</b>Structure sweep<br>build‑bound</div><div>
+<ul>
+<li>Cost pilot first: 200 folds of F5 with <code>claude_code</code> and Sonnet. Measure tokens per fold, cache hit rate, seconds per fold, failed folds. Extrapolate to the fold count from stage B. This single number sizes everything after it; you decide seeds and cuts against the ceiling in section 12.</li>
+<li>Build F4, F5, F6, F7 per fold and F2, F3 weekly, all with the same harness, model, and seed 1. Build G1 by LLM extraction with the same model; G2 with LightRAG's own pipeline pinned to the same model. H1 from F5.</li>
+<li>Health checkpoints at weeks 1, 2, 4, 8, end, with the 60‑probe erosion panel.</li>
+<li>Reader on all stage C stores at three budgets on the selection set. About 8,000 reader calls.</li>
+</ul>
+<div class="gate"><b>Gate C:</b> failed folds ≤ 5 % per store; ledger diff shows identical delivered event ids across stores; candidate set computed by rule 1 in section 6.</div>
+</div></div>
+
+<div class="phase"><div class="k"><b>Stage D</b>Builder grid<br>build‑bound</div><div>
+<ul>
+<li>Take the top three structures from the candidate set, always including F5 for continuity. Rebuild each with: <code>claude_code</code> × Opus; <code>codex</code> × gpt‑5.x; <code>claude_code</code> × Sonnet with shell‑only tools. Up to nine builds.</li>
+<li>Reader on all at 8 k on the selection set.</li>
+<li>Analysis: two‑way table structure × builder; interaction contrast per structure; store‑shape metrics per builder, since Zhou et al. found shape to be a signature of the model.</li>
+</ul>
+<div class="gate"><b>Gate D:</b> every build meets the fold‑failure bound; the candidate set is re‑evaluated with builder as a factor.</div>
+</div></div>
+
+<div class="phase"><div class="k"><b>Stage E</b>Reader ladder<br>2 days, reader calls only</div><div>
+<ul>
+<li>On the top three stores plus F1 and R‑vec: readers Haiku 4.5, Sonnet 5, Opus 5 × tool sets file‑native, file‑native + BM25, shell. 8 k only, selection set.</li>
+<li>Analysis: is reader strength monotone; does the ranking of stores change with the reader; does a BM25 tool flatten organisation's advantage as it did in Zhou et al.</li>
+</ul>
+</div></div>
+
+<div class="phase"><div class="k"><b>Stage F</b>Confirmation<br>build‑bound for seeds</div><div>
+<ul>
+<li>Register <code>PREREG-E3-confirm.md</code> naming the candidate set and the winner hypothesis before unsealing.</li>
+<li>Seeds 2 and 3 for F5 and for the winner if different. Seed spread computed.</li>
+<li>Unseal the confirmation set; run candidates, F1, R‑vec at 8 k with the fixed reader. Apply the decision rule. Independent review. Amend and rerun only what the review requires.</li>
+</ul>
+<div class="gate"><b>Evidentiary status:</b> every gate passed, seed spread below the winning delta, review with no open blocker.</div>
+</div></div>
+
+<h2 id="interaction">8 · Harness, model, reader: what we can and cannot conclude</h2>
+<p>The interaction you care about, "some harnesses work well with some structures", is stage D. It is a 3 structures × 3 builder cells design on one seed each, plus the Sonnet baseline from stage C, which gives a 3 × 4 table. That detects a large interaction, such as a structure that wins under one builder and loses under another, but not a subtle one; with one seed per cell, a cell difference below the F5 seed spread is noise by our own rule. The honest claims available are "the ranking is stable across builders" or "the ranking flips for structure X under builder Y, and here is the store-shape difference that explains it".</p>
+<p>Two harness details matter more than the model name. First, the tool set: Zhou et al. report that changing the tool set alone reshaped the store as strongly as swapping the model, so the shell-only cell is included as a harness variant of the same model. Second, the codex harness does not exist in the builder yet; it is a registry stub. Building it is a code item, and if it slips, the grid degrades to 3 structures × 3 Claude cells and the harness claim is scoped to tool sets.</p>
+<p>On the reader side, Zhou et al. found reader strength monotone and builder strength not. If stage E reproduces that on our data, the implementation consequence is that the engine should spend on the reading agent behind the MCP surface rather than on the builder model, which is a cheaper engine to run. That is a thesis-grade finding whichever way it goes.</p>
+
+<h2 id="cost">9 · Cost and time</h2>
+<p>The reader side is bounded and cheap. The build side depends on one number the pilot measures: dollars per LLM-built store. Everything below the line is written in terms of it.</p>
+<div class="tbl"><table>
+<thead><tr><th>Item</th><th class="num">Reader calls</th><th class="num">Estimated $</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td>Stage A: ALL and A0 on 300 probes; pilot annotation</td><td class="num">600</td><td class="num">40–100</td><td>ALL is entity history, capped at context</td></tr>
+<tr><td>Stage B: 7 stores × 3 budgets × 300</td><td class="num">6,300</td><td class="num">≈ 250</td><td>tool‑using reader averages more than one call per probe; counted as tokens</td></tr>
+<tr><td>Stage C: 9 stores × 3 budgets × 300</td><td class="num">8,100</td><td class="num">≈ 320</td><td></td></tr>
+<tr><td>Stage D: 9 builds × 300 at 8 k</td><td class="num">2,700</td><td class="num">≈ 90</td><td></td></tr>
+<tr><td>Stage E: 5 stores × 9 reader cells × 300</td><td class="num">13,500</td><td class="num">≈ 450</td><td>Opus reader cells dominate</td></tr>
+<tr><td>Stage F: seeds and confirmation, ≈ 6 stores × 300</td><td class="num">1,800</td><td class="num">≈ 60</td><td></td></tr>
+<tr><td>Embeddings, once, plus H1 chunks</td><td class="num">—</td><td class="num">≈ 5</td><td></td></tr>
+<tr><td><b>Reader side total</b></td><td class="num">≈ 33,000</td><td class="num"><b>≈ 1,200–1,300</b></td><td>at Sonnet prices; reader cache makes reruns near free</td></tr>
+<tr><td colspan="4" style="background:var(--bg)"><b>Build side, in units of one LLM‑built store at the pilot's measured cost</b></td></tr>
+<tr><td>Stage C: F4, F5, F6, F7, G1 per‑fold builds</td><td class="num">—</td><td class="num">5 × build</td><td>G1 extraction is cheaper per event than an agent fold; counted as one build for safety</td></tr>
+<tr><td>Stage C: F2, F3, G2 weekly consolidation</td><td class="num">—</td><td class="num">≈ 1 × build total</td><td>26 passes over growing material; F2 is move‑only and nearly free</td></tr>
+<tr><td>Stage D: 9 rebuilds</td><td class="num">—</td><td class="num">9 × build</td><td>Opus cells cost roughly 5 × Sonnet</td></tr>
+<tr><td>Stage F: 2–4 seeds</td><td class="num">—</td><td class="num">2–4 × build</td><td></td></tr>
+<tr><td><b>Build side total</b></td><td class="num"></td><td class="num"><b>≈ 17–19 × build</b></td><td>cut order in section 3 brings this down to ≈ 10 × build</td></tr>
+</tbody></table></div>
+<p><strong>What a build might cost.</strong> The fold count for 37,719 events under the registered windowing is unknown until stage B, but the E1 corpus profile suggests low thousands of folds. At 20 to 60 k input tokens per fold with prompt caching and 1 to 2 k output, one Sonnet build is on the order of a few hundred to two thousand dollars. If the builder runs on Claude Code subscription credentials rather than an API key, the constraint becomes hours rather than dollars, which changes the answer to section 12 question 2 entirely.</p>
+<p><strong>Wall time.</strong> Builds within one store are serial by design, one writer per org, so a build takes fold count × seconds per fold. Builds across stores are independent and run in parallel on this machine, which has the cores and memory for six at once; they are API-bound, not CPU-bound. Windowing is by event time, so the replay runs as fast as the builder allows rather than at a fixed 60×. A rough shape: if a fold is 45 seconds and there are 6,000 folds, one build is three days, stage C is about a week with six in parallel, and stage D another week. The pilot replaces these guesses.</p>
+
+<h2 id="code">10 · Code work</h2>
+<p>Items 1 to 7 are prerequisites for stage A and B and were already identified in the E2 audit. Items 8 onward are new to the merged design.</p>
+<div class="tbl"><table>
+<thead><tr><th>#</th><th>Work</th><th>Why</th><th>Stage</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Retrieve‑everything restricted to the entity's history; capped at context; truncations counted</td><td>currently feeds the whole replay per probe, unrunnable</td><td>A</td></tr>
+<tr><td>2</td><td>One persisted BM25 and one embedding index over the slice with a time mask; RRF for R‑hyb</td><td>currently rebuilt and re‑embedded per probe</td><td>A</td></tr>
+<tr><td>3</td><td>Install and declare <code>anthropic</code>, <code>voyageai</code>; keys; retry and backoff; bounded concurrency; token‑count cache</td><td>first provider call raises today</td><td>A</td></tr>
+<tr><td>4</td><td>R‑H1 slice command; <code>--probe-window</code>; evidentiary probe flags wired through <code>run</code>; 600‑probe split with sealed confirmation hash; dual gold fails closed without raw JIRA</td><td>window and evidentiary plumbing missing; vacuous gate</td><td>A</td></tr>
+<tr><td>5</td><td>Tool‑using reader agent: file‑native tools, retrieval tool, graph tools; budget on tokens read; tool‑call log; three tool‑set variants</td><td>A4 is a deterministic walk today; readers are the dominant lever</td><td>A</td></tr>
+<tr><td>6</td><td>Fix known review findings: abstention gold rechecked at T; code‑location window anchored to T; link regex accepts <code>+</code>; McNemar binarisation unified; budget check in <code>valid_primary</code>; pre‑truncation tokens recorded</td><td>wrong gold on some probes</td><td>A</td></tr>
+<tr><td>7</td><td>Cross‑seed aggregation; cost columns in contrasts; <code>e3/prereg.py</code>; paper‑figures script for the merged bundle written before stage B</td><td>reporting parity with E1 run 4</td><td>B</td></tr>
+<tr><td>8</td><td>Store build parameterised by layout and prompt: seeded layouts for F4, F5, F6, F7; per‑structure <code>CLAUDE.md</code> hashed</td><td>the sweep</td><td>C</td></tr>
+<tr><td>9</td><td>Periodic consolidation driver: weekly pass over F0 producing F2 (move‑only) and F3 (preserve rule), commit per pass</td><td>consolidation‑cadence designs</td><td>C</td></tr>
+<tr><td>10</td><td>G1 adapter: LLM extraction to a temporal graph (Graphiti with FalkorDB, or an in‑repo bitemporal edge table in SQLite if Graphiti's pipeline cannot be pinned to our model); as‑of‑T query; reader tools</td><td>graph condition</td><td>C</td></tr>
+<tr><td>11</td><td>G2 adapter: LightRAG pinned to the same model, weekly checkpoint, query tool</td><td>graph RAG condition</td><td>C</td></tr>
+<tr><td>12</td><td>H1: section chunking and embedding of F5 files at each snapshot; semantic search tool</td><td>hybrid condition</td><td>C</td></tr>
+<tr><td>13</td><td>Health metrics B4 and scope leakage in <code>store_health.py</code>, unit‑tested on planted defects; graph analogues</td><td>Zhou et al. health measures</td><td>C</td></tr>
+<tr><td>14</td><td>Codex harness in the builder registry; shell‑only tool set variant for the Claude harness; per‑harness usage accounting</td><td>stage D grid</td><td>D</td></tr>
+<tr><td>15</td><td>Parallel multi‑store build launcher with detached processes, per‑store logs, resumable from the last commit</td><td>six builds at once for a week</td><td>C</td></tr>
+</tbody></table></div>
+
+<h2 id="risks">11 · Risks</h2>
+<ul>
+<li><strong>Build cost is unbounded until the pilot.</strong> Mitigation: the pilot is the first paid step of stage C, and the cut order is registered. Nothing in stages A and B depends on it.</li>
+<li><strong>Winner's curse.</strong> Seventeen conditions and a builder grid make the best selection-set number optimistic. Mitigation: the sealed confirmation set and the candidate-set rule; the thesis headline is the confirmation number.</li>
+<li><strong>Seed spread swallows the effect.</strong> The spec's stop rule: if F5's between-seed spread exceeds F5 − F1, the result is "curation does not reliably beat templating at this scale". Mitigation: none, it is a finding; but it is why seeds 2 and 3 for F5 are never cut.</li>
+<li><strong>Unequal tools across families.</strong> A graph reader with a good query tool could win because of the tool, not the store. Mitigation: token budget on tool returns, tool-call counts reported, and the stage E tool-set ladder on file stores shows how much tools alone move accuracy.</li>
+<li><strong>Snapshot text provenance.</strong> As in E1, JIRA text is export-time text. Gold is unaffected; stores are built from it. Declared limitation, informational gate.</li>
+<li><strong>Periodic designs carry staleness.</strong> F2, F3, G2 are up to a week stale at T by construction. Reported as freshness; registered as a property of the design, not a defect of the run.</li>
+<li><strong>Two E1 patterns to keep watching:</strong> a gate that cannot fail, and a human step deferred past the run. Every gate above names a failing value, and the human pilot precedes the first build.</li>
+</ul>
+
+<h2 id="decisions">12 · Decisions for you</h2>
+<ol class="qs">
+<li><b>Scope.</b> Confirm E2 is retired and this plan replaces spec §7 E2 and E3, with the fidelity metrics kept as named secondaries.</li>
+<li><b>Build ceiling and credentials.</b> A dollar ceiling for LLM builds, or a statement that the Claude harness runs on subscription credentials and the ceiling is wall-clock. The pilot will be sized against it.</li>
+<li><b>Condition list.</b> Seventeen as in section 3, or changes. In particular: is F7's fact ledger the structure you want to argue for, and is G1 worth an adapter given the RQ5 recommendation already moved away from a graph as the system of record?</li>
+<li><b>Builder grid.</b> Codex with gpt‑5.x requires building the codex harness. Keep it, or restrict stage D to Claude harness cells (Sonnet, Opus, shell-only) and scope the harness claim to tool sets?</li>
+<li><b>Reader ladder.</b> Haiku, Sonnet, Opus with three tool sets is 45 reader cells and about $450. Keep, or drop Haiku and BM25-augmented cells?</li>
+<li><b>Practical threshold.</b> Register |Δ| ≥ 0.05 macro at 8 k.</li>
+<li><b>Second annotator</b> for the 30-probe pilot, available in stage A.</li>
+<li><b>Keys.</b> Anthropic and Voyage, or OpenAI embeddings in place of Voyage.</li>
+</ol>
+
+<h2 id="deliverables">13 · Deliverables</h2>
+<div class="tbl"><table>
+<thead><tr><th>Artifact</th><th>Path</th></tr></thead>
+<tbody>
+<tr><td>Registration</td><td><code>apps/eval/PREREG-E3.md</code> before stage B; <code>PREREG-E3-confirm.md</code> before stage F; amendments appended to <code>PREREG.md</code></td></tr>
+<tr><td>Probe sets</td><td><code>out/probes/kafka-h1-select.jsonl</code>, <code>kafka-h1-confirm.jsonl</code>, both with <code>.sha256</code> and <code>.gold.json</code>; the confirm hash in PREREG</td></tr>
+<tr><td>Stores</td><td><code>out/stores/&lt;ID&gt;/&lt;builder&gt;/seed-N/</code> git repos with <code>snapshots.csv</code>, ledger, usage log, health checkpoints</td></tr>
+<tr><td>Run directories</td><td><code>out/&lt;ts&gt;-e3-kafka/&lt;stage&gt;/&lt;store&gt;/&lt;budget&gt;/</code> with <code>answers.jsonl</code>, <code>metrics.csv</code>, <code>gate.csv</code>, <code>budget_checks.csv</code>, <code>manifest.json</code></td></tr>
+<tr><td>Paper bundle</td><td><code>apps/eval/reports/e3-kafka-run1/</code>: <code>results_summary.md</code> with LaTeX; figures: accuracy vs budget per store, Pareto of accuracy vs search tokens, structure × builder heatmap, reader ladder, erosion curves, health table; HTML report</td></tr>
+<tr><td>Human gates</td><td><code>reports/e3-kafka-pilot/</code>; <code>reports/e3-kafka-human-sample/</code> 200‑probe audit sheet</td></tr>
+<tr><td>Review and narrative</td><td><code>STATUS/REVIEW-E3-KAFKA.md</code>; <code>REPORT-E3-KAFKA.md</code>; <code>docs/HANDOFF-E3-REAL.md</code></td></tr>
+<tr><td>Engine change record</td><td><code>docs/DECISION-STORE.md</code>: the outcome‑to‑implementation row that fired, with the numbers</td></tr>
+</tbody></table></div>
+<p>Nothing here has been executed. After your answers to section 12, the next step is stage A, item 1 of the code work.</p>
+</main>
+</div>
