@@ -1,0 +1,33 @@
+{
+  "artifact": "/home/yasha/Desktop/uni/masters/masters-streaming-ai-agent-architecture/eval/artifacts/06-e3-experiment-blueprint.html",
+  "date": "2026-09-12",
+  "scope": "HTML authoring verification only; not experimental validation",
+  "static": {
+    "bytes": 125965,
+    "sections": 18,
+    "factors": 32,
+    "unique_ids": true,
+    "local_links_exist": true,
+    "external_dependencies": 0
+  },
+  "browser": {
+    "engine": "Chromium via Playwright",
+    "desktop_viewport": "1440x1000",
+    "mobile_viewport": "390x844",
+    "charts_rendered": 26,
+    "factor_search_and_scope_filter": "pass",
+    "chart_group_filter": "pass",
+    "calculator_default_and_changed_inputs": "pass",
+    "details_expand_collapse": "pass",
+    "print_includes_filtered_charts": "pass",
+    "desktop_horizontal_overflow": false,
+    "mobile_horizontal_overflow": false,
+    "page_errors": [],
+    "remote_requests": [],
+    "screenshots": [
+      "/tmp/e3-blueprint-desktop.png",
+      "/tmp/e3-blueprint-chart.png",
+      "/tmp/e3-blueprint-mobile.png"
+    ]
+  }
+}

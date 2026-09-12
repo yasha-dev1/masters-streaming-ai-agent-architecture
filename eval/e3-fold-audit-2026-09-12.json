@@ -1,0 +1,79 @@
+{
+  "parent_sha256": "d2d43a2204169cd1a4ee97ca08c64d2ae9dfe8caf759b149a6fc2465717784b6",
+  "rh1_sha256_exact_lines": "bd65bbbf38daabd25614857b220b326bc44abee53ec98b66f5a560e12e215183",
+  "rh1_events": 37719,
+  "sources": {
+    "github:apache/kafka": 22685,
+    "jira:KAFKA": 11039,
+    "mail:dev@kafka.apache.org": 3995
+  },
+  "probe_period_events": 11905,
+  "unique_subjects": 4581,
+  "current_s3_config": {
+    "folds": {
+      "fast": 1266,
+      "batch": 27775
+    },
+    "close_reasons": {
+      "gap": 27744,
+      "fast": 24,
+      "max_age": 4,
+      "cap": 2,
+      "flush": 1
+    },
+    "fold_size_counts": {
+      "1": 22688,
+      "2": 5260,
+      "4": 310,
+      "5": 153,
+      "3": 498,
+      "6": 70,
+      "7": 17,
+      "9": 6,
+      "12": 2,
+      "8": 19,
+      "18": 2,
+      "20": 2,
+      "10": 8,
+      "16": 2,
+      "14": 1,
+      "17": 1,
+      "11": 1,
+      "13": 1
+    },
+    "total_folds": 29041
+  },
+  "rules_disabled_same_window": {
+    "folds": {
+      "fast": 0,
+      "batch": 28914
+    },
+    "close_reasons": {
+      "gap": 28907,
+      "max_age": 4,
+      "cap": 2,
+      "flush": 1
+    },
+    "fold_size_counts": {
+      "1": 22471,
+      "2": 5324,
+      "4": 316,
+      "5": 154,
+      "3": 516,
+      "6": 71,
+      "7": 17,
+      "9": 6,
+      "12": 2,
+      "8": 19,
+      "18": 2,
+      "20": 2,
+      "10": 8,
+      "16": 2,
+      "14": 1,
+      "17": 1,
+      "11": 1,
+      "13": 1
+    },
+    "total_folds": 28914
+  }
+}
